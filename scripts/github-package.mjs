@@ -3,7 +3,7 @@ import path from 'node:path';
 const entries=[];
 async function add(file,target=file){entries.push({path:target,mode:'100644',type:'blob',content:await readFile(file,'utf8')});}
 async function walk(directory){for(const item of await readdir(directory,{withFileTypes:true})){if(['.git','dist','node_modules','.cache','__pycache__','.sites-runtime'].includes(item.name)||item.name.startsWith('.sites-checkout'))continue;const file=directory+'/'+item.name;if(item.isDirectory())await walk(file);else if(item.isFile()&&!/\.(png|jpg|jpeg|pdf|pyc|log|tar|gz)$/i.test(item.name))await add(file);}}
-for(const file of ['package.json','README.md','LICENSE','requirements.txt','.env.example','.gitignore','.replit'])await add(file);
+for(const file of ['server.mjs','package.json','README.md','LICENSE','requirements.txt','.env.example','.gitignore','.replit'])await add(file);
 for(const directory of ['src','public','scripts','tests','runpod','deploy/futurework'])await walk(directory);
 await add('docs/ARCHITECTURE.md');
 await add('.github/workflows/futurework-pages.yml','.github/workflows/futurework-pages.yml');

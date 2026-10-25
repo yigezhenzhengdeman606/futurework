@@ -8,7 +8,8 @@ async function api(route,method='GET',body){const response=await fetch('https://
 const user=await api('/user');if(user.login!==owner)throw Error('Authenticated GitHub account does not match target');
 const prefix=`/repos/${owner}/${repo}`;
 const ref=await api(prefix+'/git/ref/heads/main');
-if(ref.object.sha!=='7450a59b1431fcc5246f9332cf4cd2f3b3ad1395')throw Error('Repository changed since initialization; inspect before publishing');
+const expected=process.argv[2]||'7450a59b1431fcc5246f9332cf4cd2f3b3ad1395';
+if(!/^[a-f0-9]{40}$/.test(expected)||ref.object.sha!==expected)throw Error('Repository changed since inspection; inspect before publishing');
 const parent=await api(prefix+'/git/commits/'+ref.object.sha);
 const entries=JSON.parse(await readFile('.cache/github-tree.json','utf8'));
 if(!entries.length||entries.some(e=>e.path.startsWith('futurework/')))throw Error('Unexpected source layout');

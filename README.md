@@ -1,5 +1,7 @@
 # Future Atlas · AI Career Navigator
 
+个人账号源码仓库：[yigezhenzhengdeman606/futurework](https://github.com/yigezhenzhengdeman606/futurework)。GitHub Pages 网页：[Futurework](https://yigezhenzhengdeman606.github.io/futurework/)，独立体验入口：[职业体验大厅](https://yigezhenzhengdeman606.github.io/futurework/#/experience)。Pages 仅托管前端，AI 与动态数据请求连接下方的公开 Sites 后端；不是把 Node.js 服务运行在 Pages 中。更新 main 分支的应用源码会通过 GitHub Actions 测试并发布。
+
 线上站点：[Futurework](https://futurework-career-navigator.snugkiwi16.chatgpt.site)，独立职业体验页：[体验大厅](https://futurework-career-navigator.snugkiwi16.chatgpt.site/experience)。当前已公开，无需登录 ChatGPT。网站访问时按间隔刷新研究信号；原每日定时任务仍需调整其私有访问检查。
 
 托管版本位于 `deploy/futurework`，由 `node scripts/prepare-sites.mjs` 从现有源码准备，再在该目录运行 `node build.mjs` 生成无新增依赖的 Worker 产物。公开研究缓存保存在托管 R2 中，签名密钥通过 Sites secret 配置，不在源码中。`node --test` 包含 HTTPS、跨请求签名及独立体验的托管适配验证。托管站更新需按 Sites 的源码同步、打包及保存发布流程执行；本地修改不会自动上线。

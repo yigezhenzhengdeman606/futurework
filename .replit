@@ -1,0 +1,5 @@
+run = "node server.mjs"
+entrypoint = "server.mjs"
+
+[nix]
+channel = "stable-24_05"

@@ -1,0 +1,12 @@
+import {mkdir,copyFile,readFile,writeFile,readdir} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const output=path.join(root,'dist/pages');await mkdir(output,{recursive:true});
+for(const file of await readdir(path.join(root,'public')))await copyFile(path.join(root,'public',file),path.join(output,file));
+await copyFile(path.join(root,'src/life.mjs'),path.join(output,'life-model.js'));
+let html=await readFile(path.join(output,'index.html'),'utf8');
+html=html.replace(/(href|src)="\/(style\.css|intro\.css|intro\.js|app\.js)"/g,'$1="$2"').replace('href="/"','href="./"');
+await writeFile(path.join(output,'index.html'),html);
+await writeFile(path.join(output,'.nojekyll'),'');
+console.log('Built GitHub Pages frontend; API calls use the public hosted backend.');

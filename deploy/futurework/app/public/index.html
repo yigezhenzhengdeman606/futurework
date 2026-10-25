@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Future Atlas · 职业未来导航</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/intro.css"><script type="module" src="/intro.js"></script><script type="module" src="/app.js"></script></head>
+<body><aside><a class="brand" href="/">◈ <span>FUTURE ATLAS<small>职业未来导航</small></span></a><p class="nav-label">你的下一种可能</p><nav><button data-view="overview" class="active">◉ &nbsp; 未来观察站</button><button data-view="profile">◎ &nbsp; 我的职业档案</button><button data-view="report">▤ &nbsp; 转型报告</button><button data-view="experience">◇ &nbsp; 职业体验大厅</button><button data-view="stress">↗ &nbsp; 压力测试与匹配</button><button data-view="settings">⚙ &nbsp; AI 连接设置</button></nav><div class="aside-bottom"><span class="dot"></span> 无 AI 也能完整探索<p>让职业成长，与可持续未来同行。</p><a href="https://sdgs.un.org/goals" target="_blank" rel="noreferrer">17 个目标 · 共同的未来 ↗</a></div></aside>
+<main tabindex="-1"><header><span>探索 / <b id="breadcrumb">未来观察站</b></span><span class="pill">✦ 为变化做好准备</span></header><div id="notice" role="status" aria-live="polite"></div><div id="content"></div><footer>Future Atlas · 职业探索工具，不构成就业保证。你的资料默认仅在当前页面内存中处理。</footer></main>
+<dialog id="intro" aria-labelledby="intro-title" aria-describedby="intro-description">
+  <button id="intro-skip" type="button" autofocus>跳过动画 <span aria-hidden="true">↗</span><small>Esc 也可跳过</small></button>
+  <div class="intro-heading"><span>一场关于职业未来的反击</span><h2 id="intro-title">futurework</h2><p id="intro-description">从被 AI 取代，到掌握自己的下一站。</p></div>
+  <div class="intro-stage">
+    <svg class="intro-scene" viewBox="0 0 960 480" role="img" aria-label="卡通故事：牛马敲代码，一秒后 chatgpt 扇他两巴掌并赶走他；牛马骑着 futurework 导弹返回，赶走 chatgpt。">
+      <defs><pattern id="intro-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M 32 0 L 0 0 0 32" fill="none" stroke="#dde6d5" stroke-width="1"/></pattern></defs>
+      <rect width="960" height="480" fill="url(#intro-grid)"/>
+      <path class="intro-ground" d="M90 390H870"/>
+      <g class="intro-office">
+        <path d="M462 305H635M476 305V390M610 305V390M520 292V275M495 292H550"/>
+        <rect x="485" y="208" width="110" height="68" rx="6" class="intro-monitor"/>
+        <text x="540" y="249" class="intro-code">&lt;/&gt;</text>
+        <path d="M336 338H410M345 338V390M399 338V390M336 338V280"/>
+        <g class="intro-worker">
+          <ellipse cx="395" cy="215" rx="48" ry="42" class="intro-face"/>
+          <text x="395" y="222" class="intro-face-name">牛马</text>
+          <path d="M395 258V325L435 338L449 381M395 325L372 350L378 381"/>
+          <path class="intro-typing" d="M395 272L437 291L476 285M395 279L428 300L472 297"/>
+        </g>
+      </g>
+      <g class="intro-bot">
+        <ellipse cx="654" cy="213" rx="68" ry="43" class="intro-bot-face"/>
+        <text x="654" y="220" class="intro-face-name intro-bot-name">chatgpt</text>
+        <path d="M654 258V328M654 328L630 382M654 328L681 382M654 273L690 297L713 270"/>
+        <path class="intro-slap-arm" d="M654 270L579 245L444 217"/>
+      </g>
+      <g class="intro-impact intro-impact-one"><path d="M448 183L460 166M461 202L484 192M453 225L476 232"/><text x="468" y="165">啪!</text></g>
+      <g class="intro-impact intro-impact-two"><path d="M448 183L460 166M461 202L484 192M453 225L476 232"/><text x="468" y="165">啪!</text></g>
+      <g class="intro-rocket">
+        <g class="intro-rider"><ellipse cx="435" cy="191" rx="48" ry="42" class="intro-face"/><text x="435" y="198" class="intro-face-name">牛马</text><path d="M435 234L451 275M443 251L490 260M451 275L420 298L449 318M451 275L486 294L477 321"/></g>
+        <path class="intro-flame" d="M312 289L228 267L251 297L213 320L312 326Z"/>
+        <path class="intro-missile" d="M310 278H520L580 305L520 334H310Z"/>
+        <path class="intro-fin" d="M338 278L310 252L302 278M338 334L310 360L302 334"/>
+        <text x="425" y="314" class="intro-rocket-name">futurework</text>
+      </g>
+      <g class="intro-speed"><path d="M110 234H240M90 275H210M125 348H235"/></g>
+    </svg>
+    <div class="intro-caption" aria-hidden="true"><span class="intro-caption-one">今天，也在努力敲代码。</span><span class="intro-caption-two">等等……我的工位呢？</span><span class="intro-caption-three">把未来的方向，握回自己手里。</span></div>
+  </div>
+  <div class="intro-ending" aria-hidden="true"><span>下一站，由你定义。</span><strong>futurework ↗</strong></div>
+  <p class="intro-bottom">卡通小剧场 · 即将进入职业探索 <span class="intro-timer"></span></p>
+</dialog>
+<dialog id="ai-welcome" aria-labelledby="ai-welcome-title" aria-describedby="ai-welcome-description">
+  <div class="welcome-top"><span class="eyebrow">FUTUREWORK · 开始探索</span><button type="button" class="secondary" id="ai-welcome-skip">跳过，使用无 AI 模式 ↗</button></div>
+  <h2 id="ai-welcome-title">连接你的 AI，或直接开始。</h2>
+  <p id="ai-welcome-description">添加 API Key，获得更丰富的报告解读和职业建议。不填写也能完成报告、职业体验和三职业再匹配。</p>
+  <section class="reimburse-banner"><h3>大部分厂家api接入为收费功能，并非本平台收取</h3><p>本平台仅提供一次所用api额度供体验，您可在获取api支付后向我们报销（不超过CNY1元，以实际为准）</p><button type="button" class="primary" data-reimburse>申请体验费用报销 ↗</button></section>
+  <form id="ai-welcome-form">
+    <div class="form-grid"><div><label for="welcome-provider">1. 选择服务商</label><select id="welcome-provider" name="provider"><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option></select></div><div><label for="welcome-model">2. 输入可用模型名称</label><input id="welcome-model" name="model" required maxlength="100" value="gpt-4.1-mini" autocomplete="off"></div></div>
+    <label for="welcome-key" class="welcome-key-label">3. 粘贴你的 API Key</label><input id="welcome-key" name="key" type="password" required maxlength="500" autocomplete="off" placeholder="在服务商平台创建后粘贴到这里">
+    <section class="welcome-guide" aria-labelledby="welcome-guide-title"><h3 id="welcome-guide-title">第一次使用？按这三步操作</h3><ol><li>进入所选服务商的开发者平台，注册或登录：<a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">OpenAI 密钥管理 ↗</a> / <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer">DeepSeek 密钥管理 ↗</a>。</li><li>在 API Keys 页面创建密钥并复制；确认账户有 API 使用权限及可用额度。API 可能单独计费。</li><li>回到这里选择相同服务商，填写其支持的模型名称，粘贴密钥并点击下方按钮。模型与调用说明：<a href="https://platform.openai.com/docs/models" target="_blank" rel="noreferrer">OpenAI 文档</a> / <a href="https://api-docs.deepseek.com/" target="_blank" rel="noreferrer">DeepSeek 文档</a>。</li></ol></section>
+    <label class="welcome-consent"><input type="checkbox" id="welcome-consent" required> 我同意在后续生成时将职业资料发送给所选服务商，并了解可能产生 API 费用。</label>
+    <p class="muted">密钥仅在本次页面会话内存中使用，刷新即清除。此处保存配置，不立即扣费测试；实际生成失败时自动回退规则模式。以后可在「AI 连接设置」修改。</p>
+    <div class="actions"><button type="submit" class="primary">保存配置并开始探索 ↗</button><button type="button" class="secondary" id="ai-welcome-offline">暂不连接，直接开始</button></div>
+  </form>
+</dialog>
+<dialog id="reimburse-dialog" aria-labelledby="reimburse-title">
+  <div class="welcome-top"><span class="eyebrow">一次 AI 体验 · 费用报销</span><button type="button" class="secondary" id="reimburse-close">关闭</button></div>
+  <h2 id="reimburse-title">请上传自己的收款码</h2><p>支持微信、支付宝或 Touch ’n Go。仅报销一次体验的实际 API 消费，最高 CNY 1 元；充值余额不等于实际消费。材料通过邮件提供后，由平台人工核实。</p>
+  <form id="reimburse-form"><div class="form-grid"><div><label for="reimburse-amount">实际消费金额（CNY，最高 1 元）</label><input id="reimburse-amount" type="number" min="0.01" max="1" step="0.01" required placeholder="例如 0.05"></div><div><label for="reimburse-method">收款方式</label><select id="reimburse-method" required><option value="">请选择</option><option>微信</option><option>支付宝</option><option>Touch ’n Go</option></select></div></div>
+  <p class="muted">Touch ’n Go 申请也按 CNY 1 元上限核算，实际结算币种与金额由人工核实确认。</p>
+  <label for="reimburse-qr">上传你自己的收款码（PNG / JPG / WebP，最大 5 MB）</label><input id="reimburse-qr" type="file" accept="image/png,image/jpeg,image/webp" required><img id="reimburse-preview" alt="收款码预览" hidden>
+  <label for="reimburse-receipt">上传本次 API 消费凭证（同样支持上述图片格式）</label><input id="reimburse-receipt" type="file" accept="image/png,image/jpeg,image/webp" required>
+  <p class="muted">请遮盖凭证中的 API 密钥及无关个人信息，保留服务商、时间和实际消费金额。无需上传账户密码。</p>
+  <label class="welcome-consent"><input type="checkbox" required> 我确认这是本人收款码，仅申请一次体验的实际费用，并同意将材料通过邮件提供给平台审核。</label>
+  <div class="actions"><button type="submit" class="primary">下载完整申请材料</button><a id="reimburse-email" class="secondary" hidden>打开邮件申请 ↗</a></div><p id="reimburse-status" role="status" aria-live="polite"></p>
+  <p>若生成失败并消耗余额，请发邮件给我们</p>
+  <p class="muted">接收邮箱：3473280583@qq.com。图片仅在当前页面处理，下载不会自动提交或付款。下载后请打开邮件，将申请文件手动添加为附件并发送；没有邮件客户端时，可使用网页邮箱。</p></form>
+</dialog>
+<dialog id="career-opening" aria-labelledby="career-opening-title" aria-describedby="career-opening-description">
+  <button id="career-opening-close" type="button" autofocus>返回上一页 ✕</button>
+  <div class="career-poster">
+    <div class="career-poster-top">今日副本</div>
+    <div class="career-portrait">
+      <svg viewBox="0 0 640 340" role="img" aria-label="站在门前，准备开启新人生的卡通小人">
+        <defs><linearGradient id="career-room" x2="1" y2="1"><stop stop-color="#2c3030"/><stop offset=".6" stop-color="#464336"/><stop offset="1" stop-color="#171c20"/></linearGradient><radialGradient id="career-light"><stop stop-color="#b4beb7" stop-opacity=".24"/><stop offset="1" stop-color="#b4beb7" stop-opacity="0"/></radialGradient></defs>
+        <rect width="640" height="340" fill="url(#career-room)"/>
+        <path d="M155 0V340M171 0V340M478 0V340M491 0V340M202 0V112H444V0M209 0V105H437V0M197 240H443V340M206 250H433V340" fill="none" stroke="#191d1c" stroke-width="3"/>
+        <rect x="456" y="180" width="31" height="65" rx="4" fill="#525e5c" stroke="#202827" stroke-width="3"/><circle cx="471" cy="201" r="10" fill="#78817a" stroke="#242d2b" stroke-width="3"/>
+        <ellipse cx="362" cy="190" rx="235" ry="220" fill="url(#career-light)"/>
+        <g class="career-cartoon" stroke="#182224" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M270 195Q245 189 225 212L197 286L224 300L256 245L260 340H423L427 245L447 300L476 288L454 217Q443 198 414 197Z" fill="#30393b"/>
+          <path d="M198 284L190 311Q189 330 198 331L202 312L204 335Q211 340 212 315L218 335Q225 335 221 309L226 296M449 298L453 320Q455 337 463 332L460 312L469 332Q478 333 472 307L478 323Q485 320 477 287" fill="#b8c7c8"/>
+          <path d="M335 174L329 198Q345 218 364 199L366 179" fill="#b9c9c9"/>
+          <g transform="rotate(12 351 121)"><ellipse cx="351" cy="121" rx="77" ry="86" fill="#bbcaca"/><path d="M417 147Q438 132 441 150Q444 168 424 169" fill="#bbcaca"/><path d="M426 151Q434 146 435 154" fill="none" stroke-width="2"/>
+          <ellipse cx="321" cy="105" rx="20" ry="18" fill="#747b8a" stroke="none"/><ellipse cx="378" cy="105" rx="20" ry="18" fill="#747b8a" stroke="none"/>
+          <path d="M306 101Q321 91 334 103M364 101Q378 92 391 104M304 78Q317 71 330 78M371 76Q385 74 395 84" fill="none" stroke-width="3"/>
+          <path d="M305 131Q346 177 391 131M309 132Q347 158 387 132" fill="none" stroke-width="3"/><path d="M299 134Q299 127 306 125M389 126L396 132" fill="none" stroke-width="2"/></g>
+          <path d="M301 302Q333 293 355 308" fill="none" stroke-width="3"/>
+        </g>
+      </svg>
+    </div>
+    <div class="career-poster-copy"><span>人生副本</span><h2 id="career-opening-title">你的职业人生</h2></div>
+    <p id="career-opening-description">今天体验的人生副本是：<strong id="career-opening-role"></strong></p>
+    <button type="button" id="career-opening-start">开启这段人生 <span aria-hidden="true">▶</span></button>
+    <p id="career-opening-status" role="status" aria-live="polite"></p>
+    <p class="career-opening-note">沉浸式工作情境 · 每一个选择，都让你更了解自己</p>
+  </div>
+</dialog>
+</body></html>

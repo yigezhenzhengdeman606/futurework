@@ -1,0 +1,39 @@
+name: Futurework GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths: ['public/**', 'src/**', 'scripts/**', 'tests/**', 'package.json', '.github/workflows/futurework-pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: futurework-pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build hosted test artifact
+        run: node scripts/prepare-sites.mjs
+      - name: Test complete application
+        run: node --test
+      - name: Build Pages frontend
+        run: node scripts/build-pages.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/pages
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

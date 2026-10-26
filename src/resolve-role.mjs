@@ -1,10 +1,13 @@
 import {randomUUID} from 'node:crypto';
 import {roles,scenario} from './career.mjs';
 import {signScenario,verifyScenario} from './day-ai.mjs';
+import {teachingContext,teachingTask} from './teaching.mjs';
 const bounded=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.length<=max;
 export async function resolveRole(raw,config,request){
   if(!bounded(raw,200))throw Error('请输入 1–200 字的具体职业或岗位描述');
   const input=raw.trim();
+  const teaching=teachingContext(input);
+  if(teaching.isTeacher&&(!teaching.stage||/^(高中|高[一二三]|初中|初[一二三]|小学)?(老师|教师)$/.test(input)))return {status:'clarify',message:'请补充任教学段与学科，例如“高中数学老师”“小学英语教师”，以便匹配实际教学任务。',questions:['任教小学、初中还是高中？','具体教授哪门学科？']};
   let definition;
   if(config?.key){
     try{
@@ -20,7 +23,8 @@ export async function resolveRole(raw,config,request){
     if(input.length<4||['科技','教育','工作','医生','老师','学生','打工'].includes(input))return {status:'clarify',message:'请补充具体方向，例如“小学数学教师”“后端开发工程师”。未开启 AI 时使用通用规则副本。',questions:['岗位主要负责什么？']};
     definition={name:input,task:`整理「${input}」的当天任务，确认需求、优先级并完成团队交接。`,artifact:'一份说明目标、依据与下一步的工作记录',family:/小学|初中|高中|中小学|primary school|secondary school|high school|sekolah rendah|sekolah menengah/i.test(input)?'school':/医生|医师|\bdoctor\b|\bphysician\b|\bdoktor\b/i.test(input)?'physician':'general'};
   }
-  const role={id:`custom-${randomUUID()}`,name:definition.name,task:definition.task,artifact:definition.artifact,templateId:definition.family==='school'?'school':definition.family==='physician'?'physician':'analyst',custom:true};
+  if(teaching.isTeacher&&teaching.stage){const task=teachingTask(input);definition={...definition,name:input,task:task.brief,artifact:task.title,family:['primary','middle','high'].includes(teaching.stage)?'school':'general'};}
+  const role={id:`custom-${randomUUID()}`,name:definition.name,requestedTitle:input,...(teaching.isTeacher&&teaching.stage?{teachingContext:teaching}:{}),task:definition.task,artifact:definition.artifact,templateId:definition.family==='school'?'school':definition.family==='physician'?'physician':'analyst',custom:true};
   return {status:'ready',role,customRoleToken:signScenario('custom-role',[role]),mode:config?.key?'ai':'rules',note:config?.key?'AI 已确认职业方向；具体工作日将在开始后生成。':'未开启 AI，使用通用规则体验，不声称还原该岗位的真实细节。'};
 }
 export function resolveScenario(payload,difficulty=null){
@@ -29,8 +33,10 @@ export function resolveScenario(payload,difficulty=null){
   if(role.id!==payload.roleId)throw Error('自定义职业记录不匹配，请重新选择');
   const base=scenario(role.templateId,difficulty);
   base.roleId=role.id;base.title=role.name;base.task=role.task;base.artifact=role.artifact;base.customRoleToken=payload.customRoleToken;
-  base.taskFamily=role.templateId;
-  base.rounds[0].text=role.task;
-  base.rounds[1].text=`截止时间提前，合作方质疑你的${role.artifact}，你如何协调？`;
+  base.taskFamily=role.teachingContext?'school':role.templateId;
+  base.requestedTitle=role.requestedTitle||role.name;
+  if(base.taskFamily==='school'){const task=teachingTask(base.requestedTitle);base.task=task.brief;base.artifact=task.title;}
+  base.rounds[0].text=base.task;
+  base.rounds[1].text=`截止时间提前，合作方质疑你的${base.artifact}，你如何协调？`;
   return base;
 }

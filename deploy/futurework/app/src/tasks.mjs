@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {signScenario,verifyScenario} from './day-ai.mjs';
+import {teachingTask} from './teaching.mjs';
 const definitions={
- school:{title:'为小学三年级设计一节“认识分数”课',brief:'班级有30名学生，已学过平均分，但容易把分子与分母混淆。你有30分钟，其中一位学生需要大字号材料。请交付可以实际执行的教学设计。',materials:['学习目标：理解一个整体被平均分成若干份，以及其中一份的含义。','资源：纸条、彩笔、黑板；不能假定每位学生都有平板。','约束：30分钟内完成，最后必须检查学生是否真正理解。'],fields:['学习目标与学生起点','活动流程与时间分配','理解检查、反馈与无障碍安排'],criteria:['目标与学生起点相符','活动与时间安排可执行','检查理解并纠正常见误解','照顾不同学生与资源限制']},
  educator:{title:'为转岗员工设计一节 AI 信息核实入门课',brief:'12名学员数字技能不一，只有一台投影电脑。请设计30分钟课程，让学员练习识别AI回答中需要核实的说法，避免把AI输出当作事实。',materials:['学员来自行政和客服岗位，没有编程基础。','演示材料：一段没有注明出处的AI回答。','必须包含一次学员亲自完成的练习及反馈。'],fields:['可观察的学习目标与学员需求','30分钟活动流程与练习','学习效果检查与差异化支持'],criteria:['目标具体且适合学员','练习与资源安排可执行','核实方法和反馈清楚','兼顾不同数字技能水平']},
  analyst:{title:'分析产线能耗异常并写一页建议',brief:'运营团队怀疑周三能耗异常。请用给定数据计算或比较单位产量能耗，说明能确定什么、不能确定什么，并提出核实与改进方案。',materials:['周一：产量100件，用电200千瓦时。','周二：产量120件，用电240千瓦时。','周三：产量100件，用电350千瓦时。','尚无设备运行时长、温度和检修记录，不能直接断定原因。'],fields:['数据比较、计算与异常结论','可能原因、证据缺口与核实步骤','改进行动、负责人及验证指标'],criteria:['数据计算与比较准确','结论和不确定性区分清楚','核实与改进措施可执行','验证指标和责任安排明确']},
  care:{title:'安排有限的社区探访服务',brief:'今天只有两名志愿者，每人可完成两次探访。A居民需要按约获得生活支持，B居民需要确认一次预约，C居民独居且连续两天未联系上，D居民希望有人陪聊。请提出协调方案，不进行诊断。',materials:['志愿者不能提供医疗诊疗服务。','紧急风险需要按机构流程联系有资质人员。','请说明无法当日完成的需求如何交接与跟进。'],fields:['优先级及其依据','服务排班与升级联系安排','居民沟通、隐私和后续核实'],criteria:['优先级有明确依据','资源安排与服务边界合理','沟通与隐私保护具体','交接及升级流程清楚']},
@@ -12,7 +12,7 @@ const definitions={
 };
 export function createProfessionalTask(scenario,day){
  const family=scenario.taskFamily||scenario.roleId;
- const definition=(!(scenario.roleId.startsWith('custom-')&&family==='analyst')&&definitions[family])||{title:'完成一份岗位工作方案',brief:scenario.task+' 请提交目标、证据、行动和验证方法。自定义岗位使用通用探索任务，不声称覆盖该职业全部专业要求。',materials:[scenario.artifact],fields:['目标与已有信息','具体方案与执行步骤','风险、交接与结果验证'],criteria:['目标与任务相关','方案有证据与逻辑','执行步骤可操作','风险与验证清楚']};
+ const definition=(family==='school'?teachingTask(scenario.requestedTitle||scenario.title):!(scenario.roleId.startsWith('custom-')&&family==='analyst')&&definitions[family])||{title:'完成一份岗位工作方案',brief:scenario.task+' 请提交目标、证据、行动和验证方法。自定义岗位使用通用探索任务，不声称覆盖该职业全部专业要求。',materials:[scenario.artifact],fields:['目标与已有信息','具体方案与执行步骤','风险、交接与结果验证'],criteria:['目标与任务相关','方案有证据与逻辑','执行步骤可操作','风险与验证清楚']};
  const rounds=day.events.filter(e=>e.kind==='work').length;
  const task={...definition,id:'work-sample-v1',roleId:scenario.roleId,roleTitle:scenario.title,rounds,conditions:day.morning?.conditions||[],phases:Array.from({length:rounds},(_,index)=>index===0?'初稿：完成任务方案':index===rounds-1?'最终交付：汇总修改与验证':'调整：回应新约束并改进作品')};
  return {...task,token:signScenario('professional-task',[task])};

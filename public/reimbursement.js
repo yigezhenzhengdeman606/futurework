@@ -1,4 +1,5 @@
 import {getLocale,translate} from './i18n.js';
+import {trialRequest,refreshTrialStatus} from './free-trial.js';
 const email = '3473280583@qq.com';
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function validateAmount(raw) {
@@ -31,14 +32,15 @@ if (typeof document !== 'undefined') {
   let busy = false;
   const reset = () => {
     version++;
-    form.reset(); status.textContent=''; mail.hidden=true; mail.removeAttribute('href'); preview.hidden=true; preview.removeAttribute('src');
+    form.reset(); form.querySelector('button[type=submit]').disabled=false;status.textContent=''; mail.hidden=true; mail.removeAttribute('href'); preview.hidden=true; preview.removeAttribute('src');
     if(previewURL) URL.revokeObjectURL(previewURL);
     previewURL=null;
   };
-  document.addEventListener('click', event => {
+  document.addEventListener('click', async event => {
     const button = event.target.closest('[data-reimburse]');
     if (!button) return;
-    opener=button; reset(); dialog.showModal();
+    opener=button; reset(); dialog.showModal();const current=version;
+    try{const eligibility=await trialRequest('status');if(current===version&&dialog.open&&eligibility.claimed){status.textContent='已领取平台免费体验，不能重复申请体验费用报销。';form.querySelector('button[type=submit]').disabled=true;}}catch{if(current===version&&dialog.open)status.textContent='报销核验暂时不可用，请通过邮件联系我们。';}
   });
   const close=()=>{dialog.close();reset();opener?.focus();};
   document.querySelector('#reimburse-close').addEventListener('click',close);
@@ -63,8 +65,10 @@ if (typeof document !== 'undefined') {
       await Promise.all(files.map(validateImage));
       const images=await Promise.all(files.map(readImage));
       if(current!==version||!dialog.open)return;
-      const id=`FW-${crypto.randomUUID()}`;
-      const html=`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Futurework 体验费用申请</title><body><h1>Futurework 一次体验报销申请</h1><p>申请编号：${id}</p><p>生成时间：${escape(new Date().toISOString())}</p><p>实际消费金额：CNY ${amount}（最高 1 元）</p><p>收款方式：${escape(method)}</p><p>待人工审核，未付款；请核实实际消费及是否重复申请。</p><h2>本人收款码</h2><img width="360" alt="收款码" src="${images[0]}"><h2>API 实际消费凭证</h2><img width="600" alt="消费凭证" src="${images[1]}"></body></html>`;
+      const eligibility=await trialRequest('reimbursement');
+      if(current!==version||!dialog.open)return;
+      const id=eligibility.reference;void refreshTrialStatus();
+      const html=`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Futurework 体验费用申请</title><body><h1>Futurework 一次体验报销申请</h1><p>申请编号：${id}</p><p>生成时间：${escape(new Date().toISOString())}</p><p>实际消费金额：CNY ${amount}（最高 1 元）</p><p>收款方式：${escape(method)}</p><p>未领取平台免费体验；免费领取与报销不可重复享受。</p><p>待人工审核，未付款；请核实实际消费及是否重复申请。</p><h2>本人收款码</h2><img width="360" alt="收款码" src="${images[0]}"><h2>API 实际消费凭证</h2><img width="600" alt="消费凭证" src="${images[1]}"></body></html>`;
       const filename=`${id}.html`;
       const translatedHTML=html.replace('lang="zh-CN"',`lang="${getLocale()}"`).replace(/>([^<>]+)</g,(_,text)=>'>'+translate(text)+'<');
       const url=URL.createObjectURL(new Blob([translatedHTML],{type:'text/html;charset=utf-8'}));

@@ -84,3 +84,7 @@ dialog>.language-picker{position:relative;width:max-content;max-width:100%;margi
 body>main>header{padding-right:320px;min-height:76px}
 html[lang=en] aside nav button,html[lang=ms] aside nav button{line-height:1.45;white-space:normal}
 @media(max-width:700px){body>.language-picker{top:8px;right:8px}.language-picker button{padding:7px;font-size:12px;min-height:36px}body>main>header{padding-right:12px;padding-top:62px;min-height:110px}#intro>.language-picker,#career-opening>.language-picker{left:10px;top:10px;max-width:calc(100% - 150px)}#intro .intro-heading{padding-top:80px}#career-opening .career-poster{padding-top:65px}}
+.grid > .card:has(.recommendation-evidence){align-self:start}
+.recommendation-evidence,.sdg-evidence{margin:1rem 0}
+.recommendation-evidence summary,.sdg-evidence summary{cursor:pointer;font-weight:600}
+.recommendation-evidence li,.task-impact li{margin:.45rem 0}

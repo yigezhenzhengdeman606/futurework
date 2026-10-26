@@ -1,5 +1,6 @@
 import {modeFor} from './day.mjs';
 import {verifyScenario} from './day-ai.mjs';
+import {taskImpact,sdgEvidence,recommendationEvidence,reviewEvidence} from './evidence.mjs';
 export const sdgs = ['无贫穷','零饥饿','良好健康与福祉','优质教育','性别平等','清洁饮水和卫生设施','经济适用的清洁能源','体面工作和经济增长','产业、创新和基础设施','减少不平等','可持续城市和社区','负责任消费和生产','气候行动','水下生物','陆地生物','和平、正义与强大机构','促进目标实现的伙伴关系'];
 export const roles = [
   {id:'analyst',name:'可持续发展数据分析师',industry:'商业与金融',risk:62,skills:['数据分析','Excel','沟通','可持续发展'],sdgs:[8,9,12,13],pressure:4,task:'为一家制造企业分析能耗记录，找出最值得优先改进的环节。',artifact:'一页能耗异常分析与减排建议'},
@@ -84,7 +85,7 @@ export function match(profile, experience=null, stress=null, limit=3) {
   return roles.map(r=>{
     const overlap=r.skills.filter(s=>profile.skills.includes(s));
     const goals=r.sdgs.filter(g=>profile.goals.includes(g));
-    const preference=experience?.roleId===r.id ? (experience.enjoyment-3)*5+(Number.isFinite(experience.quality)?Math.round((experience.quality-4)/2):0)+(!experience.taskAssessment&&experience.energy<50?-3:0) : 0;
+    const preference=experience?.roleId===r.id ? (experience.enjoyment-3)*5 : 0;
     // Self-reported willingness is a preference, not a capacity or health measure.
     // Distance changes relative scores; adding the user's value to every role does not.
     const contextMatch=stress?{preferredIntensity:stress.preferredIntensity,scenarioIntensity:r.pressure,distance:Math.abs(stress.preferredIntensity-r.pressure)}:null;
@@ -98,14 +99,14 @@ export function match(profile, experience=null, stress=null, limit=3) {
     const focusMatch=profile.relatedWork==='yes'&&r.skills.includes(profile.answers?.focus);
     const score=Math.max(10,Math.min(98,45+overlap.length*8+goals.length*3+(profile.industry===r.industry?8:0)+preference+preferenceAdjustment+Math.min(interests.length,2)*3+(majorMatch?5:0)+(styleMatch?3:0)+transition+(focusMatch?4:0)));
     const gaps=r.skills.filter(s=>!overlap.includes(s));
-    return {...r,score,overlap,gaps,...(contextMatch?{contextMatch}:{}),reason:`${overlap.length} 项可迁移技能 · ${goals.length} 项共同 SDG 目标${interests.length?` · 兴趣契合：${interests.join('、')}`:''}${majorMatch?' · 专业方向相关（不等于已有职业能力）':''}${styleMatch?' · 工作方式契合':''}${focusMatch?' · 符合专属问题中的学习意向':''}${transition?' · 已纳入转型目标':''}${experience?.roleId===r.id?' · 已纳入体验偏好':''}${stress?' · 已比较工作情境偏好':''}`,path:(gaps.length?gaps:['职业作品集']).map((skill,index)=>({skill,sdgs:r.sdgs,weeks:Math.ceil(12/profile.hours),action:`阶段 ${index+1}：学习${skill}，完成「${r.artifact}」中的相关部分；请同行评阅并修改。${learningAdvice(profile)}`}))};
+    return {...r,score,overlap,gaps,evidence:recommendationEvidence(r,profile,{overlap,gaps,interests,majorMatch,styleMatch},experience,stress),sdgConnections:sdgEvidence(r),rankingFactors:{experiencePreference:preference,contextPreference:preferenceAdjustment},...(contextMatch?{contextMatch}:{}),reason:`${overlap.length} 项可迁移技能 · ${goals.length} 项共同 SDG 目标${interests.length?` · 兴趣契合：${interests.join('、')}`:''}${majorMatch?' · 专业方向相关（不等于已有职业能力）':''}${styleMatch?' · 工作方式契合':''}${focusMatch?' · 符合专属问题中的学习意向':''}${transition?' · 已纳入转型目标':''}${experience?.roleId===r.id?' · 已纳入体验偏好':''}${stress?' · 已比较工作情境偏好':''}`,path:(gaps.length?gaps:['职业作品集']).map((skill,index)=>({skill,sdgs:r.sdgs,weeks:Math.ceil(12/profile.hours),action:`阶段 ${index+1}：学习${skill}，完成「${r.artifact}」中的相关部分；请同行评阅并修改。${learningAdvice(profile)}`}))};
   }).sort((a,b)=>b.score-a.score).slice(0,limit);
 }
 export function report(p,snapshot,experience=null,stress=null) {
   validateProfile(p);
   if(p.relatedWork==='yes'&&!p.answers)throw new Error('请先完成专属问题');
   const impact=marketRows(snapshot).find(i=>i.name===p.industry);
-  return {generatedAt:new Date().toISOString(),mode:'rules',transitionAdvice:p.relatedWork==='no'?'你选择了不以主修专业作为就业限制。推荐已取消专业相关加分，并适度增加跨行业探索权重；优先参考已有技能、兴趣和工作偏好。建议先体验一个新方向，再完成小型作品集、访谈从业者，并核实岗位门槛。专业相关职业仍可能因其他条件匹配而出现。':null,profileSummary:{occupation:p.occupation,major:p.major,majorDetail:p.majorDetail,interestDetail:p.interests?.includes('其他')?p.interestDetail:undefined,interests:p.interests,workStyle:p.workStyle,transitionGoal:p.transitionGoal,learningStyle:p.learningStyle,experienceLevel:p.experienceLevel,relatedWork:p.relatedWork,answers:p.answers,personalAnswers:p.personalAnswers,hours:p.hours},impact,matches:match(p,experience,stress),method:'行业基线为产品演示规则，并非 ILO 官方分数；当期相关研究标题命中数最多增加 8 点，仅表示技术信号强度。不是失业概率或薪资预测。匹配分是技能、目标和个人体验的启发式排序。',sourceUpdatedAt:snapshot.lastSuccess||null};
+  return {generatedAt:new Date().toISOString(),mode:'rules',transitionAdvice:p.relatedWork==='no'?'你选择了不以主修专业作为就业限制。推荐已取消专业相关加分，并适度增加跨行业探索权重；优先参考已有技能、兴趣和工作偏好。建议先体验一个新方向，再完成小型作品集、访谈从业者，并核实岗位门槛。专业相关职业仍可能因其他条件匹配而出现。':null,profileSummary:{occupation:p.occupation,major:p.major,majorDetail:p.majorDetail,interestDetail:p.interests?.includes('其他')?p.interestDetail:undefined,interests:p.interests,workStyle:p.workStyle,transitionGoal:p.transitionGoal,learningStyle:p.learningStyle,experienceLevel:p.experienceLevel,relatedWork:p.relatedWork,answers:p.answers,personalAnswers:p.personalAnswers,hours:p.hours},impact,taskImpact:taskImpact(p,snapshot),reviewEvidence:reviewEvidence(experience),matches:match(p,experience,stress),method:'行业基线为产品演示规则，并非 ILO 官方分数；当期相关研究标题命中数最多增加 8 点，仅表示技术信号强度。不是失业概率或薪资预测。匹配分是技能、目标和个人体验的启发式排序。',sourceUpdatedAt:snapshot.lastSuccess||null};
 }
 export function scenario(roleId,difficulty=null) {
   const r=roles.find(x=>x.id===roleId);
@@ -133,7 +134,8 @@ export function evaluateExperience(e,verifiedScenario=null) {
 export function evaluateStress(s) {
   if(!s||!Array.isArray(s.answers)||s.answers.length!==4||Array.from(s.answers).some(a=>!Number.isInteger(a)||a<1||a>5)) throw new Error('请完成四项工作情境偏好选择');
   if(s.questions!==undefined&&(!Array.isArray(s.questions)||s.questions.length!==4||Array.from(s.questions).some(q=>typeof q!=='string'||!q.trim()||q.length>400)))throw new Error('工作情境偏好问题无效');
+  if(s.currentStrain!==undefined&&s.currentStrain!==null&&(!Number.isInteger(s.currentStrain)||s.currentStrain<1||s.currentStrain>5))throw new Error('当前体验负担应为 1–5，或选择不填写');
   const preferredIntensity=s.answers.reduce((a,b)=>a+b,0)/4;
   // Keep the historical API alias during rollout; it is never a capacity score.
-  return {assessmentVersion:'work-context-v2',questions:s.questions,answers:[...s.answers],responses:s.answers.map((value,index)=>({dimension:workContextDimensions[index],value})),preferredIntensity,tolerance:preferredIntensity,note:'回答只表示你目前愿意接受的工作情境，不代表抗压能力、职业能力或心理健康状况。均值仅是探索性偏好摘要，不是经验证的心理量表。'};
+  return {assessmentVersion:'work-context-v2',currentStrain:s.currentStrain??null,questions:s.questions,answers:[...s.answers],responses:s.answers.map((value,index)=>({dimension:workContextDimensions[index],value})),preferredIntensity,tolerance:preferredIntensity,note:'回答只表示你目前愿意接受的工作情境，不代表抗压能力、职业能力或心理健康状况。均值仅是探索性偏好摘要，不是经验证的心理量表。'};
 }

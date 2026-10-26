@@ -1,5 +1,5 @@
 import {resolveRole,resolveScenario} from './src/resolve-role.mjs';
-import {personalizeQuestions,personalizeReport,personalizeStress,stressQuestions} from './src/personalize.mjs';
+import {personalizeQuestions,personalizeReport,personalizeStress,stressQuestions,workContextAssessment} from './src/personalize.mjs';
 import {generateDay,verifyScenario} from './src/day-ai.mjs';
 import {buildDay,defaults,scheduleSource,validateSchedule,clock} from './src/day.mjs';
 import http from 'node:http';
@@ -35,8 +35,8 @@ export function createApp(market,aiFetcher=fetch,options={}){
     const send=(code,value,type='application/json; charset=utf-8')=>{res.writeHead(code,{...headers,'Content-Type':type});res.end(type.startsWith('application/json')?JSON.stringify(value):value);};
     try{
       const pathname=new URL(req.url,'http://localhost').pathname;
-      if(req.method==='GET'&&['/i18n.js','/translations.js','/locale-overrides.js','/free-trial.js'].includes(pathname))return send(200,await readFile(path.join(root,'public',pathname.slice(1))),'text/javascript; charset=utf-8');
-      if(req.method==='GET'&&pathname==='/api/catalog')return send(200,{sdgs,roles,industries,profileOptions,dayDefaults:defaults,scheduleSource});
+      if(req.method==='GET'&&['/i18n.js','/translations.js','/locale-overrides.js','/free-trial.js','/work-context-ui.js'].includes(pathname))return send(200,await readFile(path.join(root,'public',pathname.slice(1))),'text/javascript; charset=utf-8');
+      if(req.method==='GET'&&pathname==='/api/catalog')return send(200,{sdgs,roles,industries,profileOptions,dayDefaults:defaults,scheduleSource,workContextAssessment});
       if(req.method==='GET'&&pathname==='/api/market')return send(200,{...market.snapshot,industries:marketRows(market.snapshot)});
       if(req.method==='POST'&&pathname.startsWith('/api/')){
         // Reject cross-origin browser calls, including key-bearing requests.
@@ -53,7 +53,7 @@ export function createApp(market,aiFetcher=fetch,options={}){
         else if(pathname==='/api/day'){const base=resolveScenario(p,p.difficulty??null);if(p.profile)validateProfile(p.profile);const day=buildDay(p.settings,p.snooze,Math.random,base.lifeMode.hell?(base.lifeMode.defaults.start==='07:30'?'school':'physician'):p.roleId,{difficulty:p.difficulty});result=await generateDay(day,base,p.profile,p.ai,(kind,payload,config,opts)=>enhance(kind,payload,config,fetcher,opts));}
         else if(pathname==='/api/questions'){validateProfile(p.profile);result=await personalizeQuestions(questionSet(p.profile),p.profile,p.ai,requestAI);}
         else if(pathname==='/api/report'){const base=report(p.profile,market.snapshot);result=await personalizeReport(base,p.profile,match(p.profile,null,null,roles.length),p.ai,requestAI);}
-        else if(pathname==='/api/stress-questions'){validateProfile(p.profile);const experience=evaluateExperience(p.experience,p.experience?.scenarioToken?verifyScenario(p.experience.scenarioToken,p.experience.roleId):null);result=await personalizeStress({questions:stressQuestions},p.profile,experience,p.ai,requestAI);}
+        else if(pathname==='/api/stress-questions'){validateProfile(p.profile);const experience=evaluateExperience(p.experience,p.experience?.scenarioToken?verifyScenario(p.experience.scenarioToken,p.experience.roleId):null);result=await personalizeStress({...workContextAssessment,assessmentVersion:workContextAssessment.version},p.profile,experience,p.ai,requestAI);}
         else if(pathname==='/api/profile-insight'){validateProfile(p.profile);result={ai:await enhance('profile-insight',{profile:p.profile,instruction:'根据具体资料总结可迁移经验、兴趣与技能的区别和需要继续追问的方向，不要凭空认定能力。'},p.ai,fetcher)};}
         else if(pathname==='/api/market-insight'){result={ai:await enhance('market-insight',{profile:p.profile,market:{...market.snapshot,items:market.snapshot.items.slice(0,12)},industries:marketRows(market.snapshot),instruction:'结合现有数据解读行业趋势和学习机会，研究信号不是就业预测，不编造当前数据。'},p.ai,fetcher)};}
         else if(pathname==='/api/simulation')result=resolveScenario(p);

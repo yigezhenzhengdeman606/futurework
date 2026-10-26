@@ -78,21 +78,26 @@ export function marketRows(snapshot) {
     return {...i,signals:hits,exposure:Math.min(95,i.base+Math.min(hits,8)),change:Math.min(hits,8)};
   });
 }
+export const workContextDimensions=['节奏变化','信息不确定','沟通协调','持续调整'];
 export function match(profile, experience=null, stress=null, limit=3) {
   return roles.map(r=>{
     const overlap=r.skills.filter(s=>profile.skills.includes(s));
     const goals=r.sdgs.filter(g=>profile.goals.includes(g));
     const preference=experience?.roleId===r.id ? (experience.enjoyment-3)*5+Math.round((experience.quality-4)/2)+(experience.energy<50?-3:0) : 0;
-    const tolerance=stress ? (stress.tolerance-r.pressure)*3 : 0;
+    // Self-reported willingness is a preference, not a capacity or health measure.
+    // Distance changes relative scores; adding the user's value to every role does not.
+    const contextMatch=stress?{preferredIntensity:stress.preferredIntensity,scenarioIntensity:r.pressure,distance:Math.abs(stress.preferredIntensity-r.pressure)}:null;
+    if(contextMatch)contextMatch.adjustment=contextMatch.distance?-3*contextMatch.distance:0;
+    const preferenceAdjustment=contextMatch?.adjustment||0;
     const prefs=rolePreferences[r.id];
     const interests=prefs.interests.filter(s=>(profile.interests||[]).includes(s));
     const majorMatch=profile.relatedWork!=='no'&&prefs.major.includes(profile.major);
     const styleMatch=prefs.workStyle.includes(profile.workStyle);
     const transition=profile.relatedWork==='no'?(profile.industry!==r.industry?3:0):profile.transitionGoal==='在原行业升级技能'?(profile.industry===r.industry?5:0):profile.transitionGoal==='探索跨行业转型'?(profile.industry!==r.industry?3:0):profile.transitionGoal==='寻找更有社会价值的工作'?goals.length*2:profile.transitionGoal==='优先选择压力较低的方向'?(4-r.pressure)*4:0;
     const focusMatch=profile.relatedWork==='yes'&&r.skills.includes(profile.answers?.focus);
-    const score=Math.max(10,Math.min(98,45+overlap.length*8+goals.length*3+(profile.industry===r.industry?8:0)+preference+tolerance+Math.min(interests.length,2)*3+(majorMatch?5:0)+(styleMatch?3:0)+transition+(focusMatch?4:0)));
+    const score=Math.max(10,Math.min(98,45+overlap.length*8+goals.length*3+(profile.industry===r.industry?8:0)+preference+preferenceAdjustment+Math.min(interests.length,2)*3+(majorMatch?5:0)+(styleMatch?3:0)+transition+(focusMatch?4:0)));
     const gaps=r.skills.filter(s=>!overlap.includes(s));
-    return {...r,score,overlap,gaps,reason:`${overlap.length} 项可迁移技能 · ${goals.length} 项共同 SDG 目标${interests.length?` · 兴趣契合：${interests.join('、')}`:''}${majorMatch?' · 专业方向相关（不等于已有职业能力）':''}${styleMatch?' · 工作方式契合':''}${focusMatch?' · 符合专属问题中的学习意向':''}${transition?' · 已纳入转型目标':''}${experience?.roleId===r.id?' · 已纳入体验偏好':''}${stress?' · 已纳入压力承受偏好':''}`,path:(gaps.length?gaps:['职业作品集']).map((skill,index)=>({skill,sdgs:r.sdgs,weeks:Math.ceil(12/profile.hours),action:`阶段 ${index+1}：学习${skill}，完成「${r.artifact}」中的相关部分；请同行评阅并修改。${learningAdvice(profile)}`}))};
+    return {...r,score,overlap,gaps,...(contextMatch?{contextMatch}:{}),reason:`${overlap.length} 项可迁移技能 · ${goals.length} 项共同 SDG 目标${interests.length?` · 兴趣契合：${interests.join('、')}`:''}${majorMatch?' · 专业方向相关（不等于已有职业能力）':''}${styleMatch?' · 工作方式契合':''}${focusMatch?' · 符合专属问题中的学习意向':''}${transition?' · 已纳入转型目标':''}${experience?.roleId===r.id?' · 已纳入体验偏好':''}${stress?' · 已比较工作情境偏好':''}`,path:(gaps.length?gaps:['职业作品集']).map((skill,index)=>({skill,sdgs:r.sdgs,weeks:Math.ceil(12/profile.hours),action:`阶段 ${index+1}：学习${skill}，完成「${r.artifact}」中的相关部分；请同行评阅并修改。${learningAdvice(profile)}`}))};
   }).sort((a,b)=>b.score-a.score).slice(0,limit);
 }
 export function report(p,snapshot,experience=null,stress=null) {
@@ -119,7 +124,9 @@ export function evaluateExperience(e,verifiedScenario=null) {
   return {...e,roleTitle:s.title||scenario(e.roleId).title,energy:Math.max(0,100+selected.reduce((v,c)=>v+c.energy,0)),quality:Math.round(selected.reduce((v,c)=>v+c.quality,0)*3/selected.length),rawQuality:selected.reduce((v,c)=>v+c.quality,0),maxQuality:selected.length*3,feedback:selected.map(c=>c.feedback)};
 }
 export function evaluateStress(s) {
-  if(!s||!Array.isArray(s.answers)||s.answers.length!==4||s.answers.some(a=>!Number.isInteger(a)||a<1||a>5)) throw new Error('请完成四项压力情境自评');
-  if(s.questions!==undefined&&(!Array.isArray(s.questions)||s.questions.length!==4||s.questions.some(q=>typeof q!=='string'||q.length>400)))throw new Error('压力情境问题无效');
-  return {questions:s.questions,answers:s.answers,tolerance:s.answers.reduce((a,b)=>a+b,0)/4,note:'这是职业情境偏好自评，不是心理健康诊断。'};
+  if(!s||!Array.isArray(s.answers)||s.answers.length!==4||Array.from(s.answers).some(a=>!Number.isInteger(a)||a<1||a>5)) throw new Error('请完成四项工作情境偏好选择');
+  if(s.questions!==undefined&&(!Array.isArray(s.questions)||s.questions.length!==4||Array.from(s.questions).some(q=>typeof q!=='string'||!q.trim()||q.length>400)))throw new Error('工作情境偏好问题无效');
+  const preferredIntensity=s.answers.reduce((a,b)=>a+b,0)/4;
+  // Keep the historical API alias during rollout; it is never a capacity score.
+  return {assessmentVersion:'work-context-v2',questions:s.questions,answers:[...s.answers],responses:s.answers.map((value,index)=>({dimension:workContextDimensions[index],value})),preferredIntensity,tolerance:preferredIntensity,note:'回答只表示你目前愿意接受的工作情境，不代表抗压能力、职业能力或心理健康状况。均值仅是探索性偏好摘要，不是经验证的心理量表。'};
 }

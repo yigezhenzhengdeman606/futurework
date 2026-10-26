@@ -17,6 +17,8 @@ No database, account system, analytics, dependency installation, or API key pers
 - `POST /api/simulation`: `{roleId, ai?}`.
 - `POST /api/rematch`: `{profile, experience: {roleId, choices:[0,2,0], enjoyment:4}, stress:{answers:[2,3,4,5]}, ai?}`.
 
+Work-context preferences use `work-context-v2` (the `/api/stress-questions` and `/api/rematch` paths remain stable). The catalogue includes `workContextAssessment` with four canonical willingness questions, dimensions and explicit 1–5 anchors. AI returns optional `scenarios[4]`, not replacement scored questions. The server recomputes `preferredIntensity` from validated answers, retains each dimension response, and ignores client-supplied averages. `tolerance` is a deprecated compatibility alias, not a capacity measure. Career results include `contextMatch` with the user preference, preset scenario intensity, distance and adjustment `-3 * abs(distance)`; no preference means no adjustment. These are uncalibrated exploration rules and product scenario settings, not professional or psychological assessment. Free-trial retakes use rule-only matching so cached paid stages are not regenerated.
+
 Profile example: `{occupation:"行政助理",industry:"行政与客服",skills:["沟通","Excel"],hours:5,goals:[4,8]}`.
 AI example: `{provider:"deepseek",model:"deepseek-flash",key:"..."}`. Only fixed OpenAI and DeepSeek HTTPS endpoints are allowed. No arbitrary URL forwarding. The key is sent in the Authorization header and is not echoed or logged. AI responses are untrusted text rendered with escaping; AI never replaces deterministic match calculations. Invalid provider/configuration yields 400; provider failure/timeout yields a usable rule report and a fallback status.
 

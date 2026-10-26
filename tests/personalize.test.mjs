@@ -17,16 +17,17 @@ test('AI recommendations select three catalog careers and replace individual pla
  const result=await personalizeReport(base,profile,candidates,ai,async()=>({text:JSON.stringify(raw)}));assert.equal(result.mode,'ai');assert.equal(result.matches[0].id,raw.matches[0].id);assert.equal(result.matches[0].score,candidates.find(c=>c.id===raw.matches[0].id).score);assert.match(result.matches[0].path[0].action,/五小时/);
  for(const modified of [{...raw,matches:[raw.matches[0],raw.matches[0],raw.matches[0]]},{...raw,matches:[{...raw.matches[0],id:'fabricated'},...raw.matches.slice(1)]}]){const fallback=await personalizeReport(base,profile,candidates,ai,async()=>({text:JSON.stringify(modified)}));assert.equal(fallback.mode,'rules');assert.deepEqual(fallback.matches,base.matches);}
 });
-test('stress questions use experience and validate four outputs, offline never calls AI',async()=>{
- const base={questions:stressQuestions};const result=await personalizeStress(base,profile,{quality:5},ai,async(kind,p)=>{assert.equal(p.experience.quality,5);return {text:JSON.stringify({questions:stressQuestions.map(q=>'结合刚刚的交付任务，'+q)})};});assert.equal(result.questions.length,4);assert.match(result.questions[0],/交付/);
+test('AI adds context while canonical willingness questions, scale and direction stay fixed',async()=>{
+ const base={questions:stressQuestions,assessmentVersion:'work-context-v2',scale:['1','2','3','4','5']};const result=await personalizeStress(base,profile,{quality:5},ai,async(kind,p,c,options)=>{assert.equal(p.experience.quality,5);assert.match(options.system,/不把愿意接受解释为能够胜任/);return {text:JSON.stringify({questions:['AI must not replace the questions'],scenarios:stressQuestions.map(()=> '结合刚刚的交付任务，可能临时调整工作。')})};});assert.deepEqual(result.questions,stressQuestions);assert.match(result.scenarios[0],/交付/);assert.deepEqual(result.scale,base.scale);assert.equal(result.assessmentVersion,base.assessmentVersion);
  assert.deepEqual((await personalizeStress(base,profile,{},null,()=>{throw Error('must not call');})).questions,stressQuestions);
  const failure=await personalizeStress(base,profile,{},ai,async()=>{throw Error('timeout');});assert.deepEqual(failure.questions,stressQuestions);
+ for(const raw of [{questions:stressQuestions},{scenarios:['too short']},{scenarios:[null,null,null,null]}])assert.deepEqual((await personalizeStress(base,profile,{},ai,async()=>({text:JSON.stringify(raw)}))).questions,stressQuestions);
 });
 test('HTTP questionnaire, report and stress flow forwards personal answers to AI without leaking API key',async()=>{
  const calls=[];const provider=async(url,init)=>{const body=JSON.parse(init.body);assert.ok(!init.body.includes('mock-key'));const {kind,data}=JSON.parse(body.messages[1].content);calls.push({kind,data});let raw;
  if(kind==='personal-questions')raw={context:'专属访谈',questions:data.base.questions.map(q=>({id:q.id,label:'你的实际场景：'+q.label})),openQuestions:['请描述一次教学分享','你想解决什么问题']};
  else if(kind==='career-recommendations')raw=recommendation(data.candidates);
- else if(kind==='stress-questions')raw={questions:stressQuestions};
+ else if(kind==='stress-questions')raw={scenarios:stressQuestions.map(()=> '在交付任务中，工作条件发生变化。')};
  else return Response.json({choices:[{message:{content:'基于你的资料解读。'}}]});
  return Response.json({choices:[{message:{content:JSON.stringify(raw)}}]});};
  const app=createApp({snapshot:{items:[]}},provider);await new Promise(r=>app.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${app.address().port}`;const post=async(route,data)=>{const r=await fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});assert.equal(r.status,200);return r.json();};

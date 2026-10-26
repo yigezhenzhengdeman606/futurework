@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {report,scenario,evaluateExperience,evaluateStress,sdgs,roles,questionSet} from '../src/career.mjs';
+import {report,scenario,evaluateExperience,evaluateStress,sdgs,roles,questionSet,match} from '../src/career.mjs';
 import {Market} from '../src/market.mjs';
 import {createApp,enhance} from '../server.mjs';
 const profile={occupation:'行政助理',industry:'行政与客服',skills:['沟通','Excel'],hours:5,goals:[4,8]};
@@ -38,8 +38,35 @@ test('major direction branches to personalized questions or transition report',(
  assert.throws(()=>report({...p,answers:{...answers,focus:'invalid'}},{items:[]}));
  const switched=report({...p,relatedWork:'no'},{items:[]});assert.match(switched.transitionAdvice,/取消专业相关加分/);assert.ok(switched.matches.every(r=>!r.reason.includes('专业方向相关')));
 });
-test('experience and pressure actually change ranking scores',()=>{
+test('experience changes ranking scores and invalid preference answers are rejected',()=>{
  const before=report(profile,{items:[]});const experience=evaluateExperience({roleId:before.matches[0].id,choices:[0,0,0],enjoyment:1});const stress=evaluateStress({answers:[1,1,1,1]});const after=report(profile,{items:[]},experience,stress);assert.notDeepEqual(before.matches.map(r=>[r.id,r.score]),after.matches.map(r=>[r.id,r.score]));assert.throws(()=>evaluateStress({answers:[0,2,3,4]}));
+});
+
+test('work preferences reverse relative career ranking rather than add a common score offset',()=>{
+ const neutral={...profile,skills:[],goals:[]};
+ const calm=match(neutral,null,evaluateStress({answers:[2,2,2,2]}),roles.length);
+ const varied=match(neutral,null,evaluateStress({answers:[5,5,5,5]}),roles.length);
+ const score=(results,id)=>results.find(r=>r.id===id).score;
+ assert.equal(calm[0].id,'educator');
+ assert.ok(score(calm,'educator')>score(calm,'school'));
+ assert.ok(score(varied,'educator')<score(varied,'school'));
+ assert.notDeepEqual(calm.map(r=>r.id),varied.map(r=>r.id));
+ assert.equal(calm.find(r=>r.id==='educator').contextMatch.adjustment,0);
+ assert.equal(varied.find(r=>r.id==='school').contextMatch.adjustment,0);
+ for(const role of varied){assert.ok(role.contextMatch.adjustment<=0);assert.ok(role.contextMatch.adjustment>=-12);}
+});
+
+test('preference influence follows distance and does not alter recorded skills or competence',()=>{
+ const neutral={...profile,skills:[],goals:[]};
+ const near=match(neutral,null,evaluateStress({answers:[3,3,3,3]}),roles.length);
+ const far=match(neutral,null,evaluateStress({answers:[5,5,5,5]}),roles.length);
+ const energy=list=>list.find(r=>r.id==='energy');assert.equal(energy(near).contextMatch.adjustment,0);assert.equal(energy(far).contextMatch.adjustment,-6);
+ assert.deepEqual(energy(near).overlap,energy(far).overlap);assert.deepEqual(energy(near).gaps,energy(far).gaps);
+ const mixed=evaluateStress({answers:[1,5,2,4],preferredIntensity:5,tolerance:5});
+ assert.equal(mixed.preferredIntensity,3);assert.deepEqual(mixed.responses.map(r=>r.value),[1,5,2,4]);assert.match(mixed.note,/不代表抗压能力/);
+ assert.deepEqual(match(neutral).map(r=>r.id),report(neutral,{items:[]}).matches.map(r=>r.id));
+ for(const answers of [[],[1,2,3],[1,2,3,4,5],[1,2,3,6],[1,2,3,1.5],[1,2,3,'4'],new Array(4)])assert.throws(()=>evaluateStress({answers}));
+ assert.throws(()=>evaluateStress({answers:[1,2,3,4],questions:['','','','']}));
 });
 test('daily feed refresh, persistence, failure fallback and staleness',async()=>{
  const dir=await mkdtemp(path.join(tmpdir(),'atlas-'));try{const market=await new Market(dir).load();let calls=0;const fetcher=async()=>{calls++;return new Response('<rss><item><title>AI coding agent</title><link>https://arxiv.org/abs/123</link></item></rss>');};await market.refresh(fetcher);assert.equal(market.snapshot.items.length,1);await market.refreshIfDue();assert.equal(calls,1);assert.equal((await new Market(dir).load()).snapshot.items.length,1);const last=market.snapshot.lastSuccess;await market.refresh(async()=>{throw Error('offline');});assert.equal(market.snapshot.lastSuccess,last);assert.equal(market.snapshot.items.length,1);assert.match(market.snapshot.status,/失败/);}finally{await rm(dir,{recursive:true,force:true});}

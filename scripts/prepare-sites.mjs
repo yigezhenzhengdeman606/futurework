@@ -11,7 +11,7 @@ let initialSnapshot={items:[],lastAttempt:null,lastSuccess:null,status:'尚未�
 try{const cached=JSON.parse(await readFile(path.join(root,'.cache/market.json'),'utf8'));if(Array.isArray(cached.items))initialSnapshot=cached;}catch{}
 let source=`import {Buffer} from 'node:buffer';\nimport {posix as path} from 'node:path';\nimport * as nodeCrypto from 'node:crypto';\nconst assets=${JSON.stringify(assets)};\nconst initialSnapshot=${JSON.stringify(initialSnapshot)};\n`;
 source+=`function createModules(env,fs){const modules={};\n`;
-const names=['life','day','career','day-ai','resolve-role','personalize','market','trial'];
+const names=['life','day','day-ai','morning','tasks','career','resolve-role','personalize','market','trial'];
 for(const name of names){
  let code=await readFile(path.join(root,'src',name+'.mjs'),'utf8');
  const exports=[...code.matchAll(/export\s+(?:async\s+)?(?:function|const|class)\s+(\w+)/g)].map(m=>m[1]);

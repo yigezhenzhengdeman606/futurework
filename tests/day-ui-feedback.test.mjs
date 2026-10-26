@@ -16,7 +16,7 @@ test('schedule validation does not claim AI is generating and displays errors be
  assert.equal(page.status.textContent,'请为晚间生活留出时间');assert.equal(page.status.focused,true);assert.equal(page.status.scrolled,true);assert.equal(page.button.disabled,false);assert.equal(page.cleared,1);
 });
 test('actual AI generation reports elapsed time and always restores buttons',async()=>{
- const page=context();vm.runInContext("activeState={ai:{key:'configured'},daily:{phase:'alarm'}}",page.sandbox);
+ const page=context();vm.runInContext("activeState={ai:{key:'configured'},daily:{phase:'morning-incidents'}}",page.sandbox);
  const operation=vm.runInContext('operation(async()=>new Promise(resolve=>{globalThis.finish=resolve;}))',page.sandbox);
  assert.match(page.status.textContent,/AI 正在编排/);assert.equal(page.button.disabled,true);page.pending[0]();assert.match(page.status.textContent,/已等待 5 秒/);
  vm.runInContext('finish()',page.sandbox);await operation;assert.equal(page.button.disabled,false);assert.equal(page.cleared,1);

@@ -8,6 +8,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {Market} from './src/market.mjs';
 import {TrialService,FileTrialStore} from './src/trial.mjs';
+import {startMorning,prepareMorning,resolveMorning,morningState} from './src/morning.mjs';
+import {createProfessionalTask,assessProfessionalTask} from './src/tasks.mjs';
 import {sdgs,roles,industries,profileOptions,match,marketRows,report,scenario,evaluateExperience,evaluateStress,questionSet,validateProfile} from './src/career.mjs';
 const root=path.dirname(fileURLToPath(import.meta.url));
 export async function enhance(kind,payload,config,fetcher=fetch,options={}){
@@ -48,7 +50,7 @@ export function createApp(market,aiFetcher=fetch,options={}){
     const send=(code,value,type='application/json; charset=utf-8')=>{res.writeHead(code,{...headers,'Content-Type':type});res.end(type.startsWith('application/json')?JSON.stringify(value):value);};
     try{
       const pathname=new URL(req.url,'http://localhost').pathname;
-      if(req.method==='GET'&&['/i18n.js','/translations.js','/locale-overrides.js','/free-trial.js','/work-context-ui.js'].includes(pathname))return send(200,await readFile(path.join(root,'public',pathname.slice(1))),'text/javascript; charset=utf-8');
+      if(req.method==='GET'&&['/i18n.js','/translations.js','/locale-overrides.js','/free-trial.js','/work-context-ui.js','/task-ui.js'].includes(pathname))return send(200,await readFile(path.join(root,'public',pathname.slice(1))),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&pathname==='/api/catalog')return send(200,{sdgs,roles,industries,profileOptions,dayDefaults:defaults,scheduleSource,workContextAssessment});
       if(req.method==='GET'&&pathname==='/api/market')return send(200,{...market.snapshot,industries:marketRows(market.snapshot)});
       if(req.method==='POST'&&pathname.startsWith('/api/')){
@@ -63,7 +65,26 @@ export function createApp(market,aiFetcher=fetch,options={}){
         if(p.ai?.key&&(!['openai','deepseek'].includes(p.ai.provider)||typeof p.ai.key!=='string'||p.ai.key.length>500||typeof p.ai.model!=='string'||!p.ai.model||p.ai.model.length>100))throw Error('请检查 API 服务商、密钥和模型名称');
         const requestAI=(kind,payload,config,opts)=>enhance(kind,payload,config,fetcher,opts);
         if(pathname==='/api/day/preview'){if(p.roleId)resolveScenario(p);const schedule=validateSchedule(p.settings);result={alarm:clock(schedule.alarm)};}
-        else if(pathname==='/api/day'){const base=resolveScenario(p,p.difficulty??null);if(p.profile)validateProfile(p.profile);const day=buildDay(p.settings,p.snooze,Math.random,base.lifeMode.hell?(base.lifeMode.defaults.start==='07:30'?'school':'physician'):p.roleId,{difficulty:p.difficulty});result=await generateDay(day,base,p.profile,p.ai,(kind,payload,config,opts)=>enhance(kind,payload,config,fetcher,opts));}
+        else if(pathname==='/api/morning'){
+          resolveScenario(p,p.difficulty??null);
+          if(p.step==='wake')result=startMorning(p.settings,p.snooze,p.roleId,p.difficulty);
+          else if(p.step==='prepare')result=prepareMorning(p.morningToken,p.roleId,p.choices);
+          else if(p.step==='resolve')result=resolveMorning(p.morningToken,p.roleId,p.materialPlan);
+          else throw Error('早晨体验阶段无效。');
+        }
+        else if(pathname==='/api/day'){
+          const morning=p.morningToken?morningState(p.morningToken,p.roleId,'ready'):null;
+          const difficulty=morning?.difficulty??p.difficulty,base=resolveScenario(p,difficulty??null);if(p.profile)validateProfile(p.profile);
+          const day=buildDay(morning?.settings||p.settings,morning?.snooze??p.snooze,Math.random,base.lifeMode.hell?(base.lifeMode.defaults.start==='07:30'?'school':'physician'):p.roleId,{difficulty,morning});
+          if(p.professional){
+            if(!morning)throw Error('请先完成早晨准备与补救选择。');day.professional=true;
+            const delivery=day.events.find(e=>e.kind==='work'&&e.round===2).time;
+            for(const event of day.events)if(event.kind==='work'&&event.round>=3){event.kind='challenge';event.time=Math.min(event.time,delivery-1);event.clock=clock(event.time);delete event.round;}
+            day.events.sort((a,b)=>a.time-b.time);day.task=createProfessionalTask(base,day);
+          }
+          result=await generateDay(day,base,p.profile,p.ai,(kind,payload,config,opts)=>enhance(kind,payload,config,fetcher,opts));
+        }
+        else if(pathname==='/api/task-assess')result=await assessProfessionalTask(p.taskToken,p.submissions,p.ai,requestAI);
         else if(pathname==='/api/questions'){validateProfile(p.profile);result=await personalizeQuestions(questionSet(p.profile),p.profile,p.ai,requestAI);}
         else if(pathname==='/api/report'){const base=report(p.profile,market.snapshot);result=await personalizeReport(base,p.profile,match(p.profile,null,null,roles.length),p.ai,requestAI);}
         else if(pathname==='/api/stress-questions'){validateProfile(p.profile);const experience=evaluateExperience(p.experience,p.experience?.scenarioToken?verifyScenario(p.experience.scenarioToken,p.experience.roleId):null);result=await personalizeStress({...workContextAssessment,assessmentVersion:workContextAssessment.version},p.profile,experience,p.ai,requestAI);}
@@ -79,7 +100,7 @@ export function createApp(market,aiFetcher=fetch,options={}){
         if(p.ai?.key&&pathname==='/api/simulation')result.ai=await enhance(pathname,result,p.ai,fetcher);
         return result;
         };
-        const result=payload.ai?.trialToken&&!['/api/simulation','/api/day/preview'].includes(pathname)
+        const result=payload.ai?.trialToken&&!['/api/simulation','/api/day/preview','/api/morning'].includes(pathname)
           ?await trial.run(payload.ai.trialToken,pathname,payload,generate,aiFetcher)
           :await generate(payload.ai?.trialToken?{...payload.ai,key:''}:payload.ai);
         return send(200,result);

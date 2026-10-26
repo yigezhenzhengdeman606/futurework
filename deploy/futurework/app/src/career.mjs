@@ -1,4 +1,5 @@
 import {modeFor} from './day.mjs';
+import {verifyScenario} from './day-ai.mjs';
 export const sdgs = ['无贫穷','零饥饿','良好健康与福祉','优质教育','性别平等','清洁饮水和卫生设施','经济适用的清洁能源','体面工作和经济增长','产业、创新和基础设施','减少不平等','可持续城市和社区','负责任消费和生产','气候行动','水下生物','陆地生物','和平、正义与强大机构','促进目标实现的伙伴关系'];
 export const roles = [
   {id:'analyst',name:'可持续发展数据分析师',industry:'商业与金融',risk:62,skills:['数据分析','Excel','沟通','可持续发展'],sdgs:[8,9,12,13],pressure:4,task:'为一家制造企业分析能耗记录，找出最值得优先改进的环节。',artifact:'一页能耗异常分析与减排建议'},
@@ -83,7 +84,7 @@ export function match(profile, experience=null, stress=null, limit=3) {
   return roles.map(r=>{
     const overlap=r.skills.filter(s=>profile.skills.includes(s));
     const goals=r.sdgs.filter(g=>profile.goals.includes(g));
-    const preference=experience?.roleId===r.id ? (experience.enjoyment-3)*5+Math.round((experience.quality-4)/2)+(experience.energy<50?-3:0) : 0;
+    const preference=experience?.roleId===r.id ? (experience.enjoyment-3)*5+(Number.isFinite(experience.quality)?Math.round((experience.quality-4)/2):0)+(!experience.taskAssessment&&experience.energy<50?-3:0) : 0;
     // Self-reported willingness is a preference, not a capacity or health measure.
     // Distance changes relative scores; adding the user's value to every role does not.
     const contextMatch=stress?{preferredIntensity:stress.preferredIntensity,scenarioIntensity:r.pressure,distance:Math.abs(stress.preferredIntensity-r.pressure)}:null;
@@ -118,6 +119,12 @@ export function scenario(roleId,difficulty=null) {
   return result;
 }
 export function evaluateExperience(e,verifiedScenario=null) {
+  if(e?.taskAssessmentToken){
+    const task=verifyScenario(e.taskAssessmentToken,'task-assessment').rounds[0];
+    if(task.roleId!==e.roleId||!Number.isInteger(e.enjoyment)||e.enjoyment<1||e.enjoyment>5)throw Error('作品反馈与职业记录不一致。');
+    const lifeDelta=Number.isFinite(e.daySummary?.energyDelta)?Math.max(-100,Math.min(100,e.daySummary.energyDelta)):0;
+    return {...e,roleTitle:task.roleTitle,quality:null,energy:Math.max(0,Math.min(100,100-task.submittedRounds*8+lifeDelta)),taskAssessment:task,feedback:task.criteria.map(c=>c.feedback),qualityBasis:'模拟作品学习反馈，不作为经过验证的职业能力评分'};
+  }
   const s=verifiedScenario||scenario(e?.roleId);
   if(!Array.isArray(e.choices)||e.choices.length!==s.rounds.length||e.choices.some(c=>!Number.isInteger(c)||c<0||c>2)||!Number.isInteger(e.enjoyment)||e.enjoyment<1||e.enjoyment>5) throw new Error('请完成全部职业决策并填写喜好程度');
   const selected=e.choices.map((c,i)=>s.rounds[i].options[c]);

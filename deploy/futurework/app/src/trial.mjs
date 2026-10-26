@@ -7,6 +7,7 @@ const stages={
  '/api/profile-insight':['profile',900],'/api/questions':['questions',1600],
  '/api/report':['report',3500],'/api/resolve-role':['role',1600],
  '/api/day':['day',11000],'/api/stress-questions':['stress',1000],
+ '/api/task-assess':['task',2400],
  '/api/rematch':['final',3500],'/api/experience-review':['final',900]
 };
 export class MemoryTrialStore{

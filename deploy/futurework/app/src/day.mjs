@@ -30,17 +30,19 @@ export function buildDay(raw,snooze,random=Math.random,roleId=null,options={}){
   const original=modeFor(roleId);if(options.difficulty!==undefined&&!['normal','difficult'].includes(options.difficulty))throw Error('请选择正常或困难模式');
   const mode={...original,hell:options.difficulty?options.difficulty==='difficult':original.hell,challenges:original.challenges||['临时任务与已有交付时间冲突，团队资源有限。','多个合作方要求同时调整方案，你需要重新协调优先级。','临近下班仍有未核实的交接事项，新的紧急请求又到了。']};
   const p=validateSchedule(raw);if(typeof snooze!=='boolean')throw Error('请选择直接起床或多睡两分钟');
-  const overslept=snooze&&random()<0.7;
-  const wake=overslept?Math.max(p.alarm+2,p.startMinute-p.wash-p.breakfast-p.commute+15):p.alarm+(snooze?2:0);
-  const depart=wake+p.wash+p.breakfast,arrival=depart+p.commute;
+  const morning=options.morning;
+  const overslept=morning?morning.overslept:snooze&&random()<0.7;
+  const wake=morning?morning.wake:overslept?Math.max(p.alarm+2,p.startMinute-p.wash-p.breakfast-p.commute+15):p.alarm+(snooze?2:0);
+  const wash=morning?morning.wash:p.wash,breakfast=morning?morning.breakfast:p.breakfast;
+  const depart=morning?morning.depart:wake+wash+breakfast,arrival=depart+p.commute;
   const workStart=Math.max(arrival,p.startMinute),span=p.endMinute-workStart;
   const events=[
-    {time:wake,kind:'wake',title:overslept?'再次睁眼，已经睡过头了':snooze?'两分钟后，你按时醒来了':'你关掉闹钟，坐起身',text:overslept?'你以为只睡两分钟，实际上错过了闹钟。后面的洗漱、早餐和通勤都被推迟。':'新的一天开始。先把自己的节奏找回来。'},
-    {time:wake,kind:'wash',title:'洗漱，更换今天的衣服',text:`洗脸、刷牙、整理仪容，按你的设置耗时 ${p.wash} 分钟。`},
-    {time:wake+p.wash,kind:'breakfast',title:p.breakfast?'吃点早餐，再出门':'拿好随身物品，准备出门',text:p.breakfast?`用 ${p.breakfast} 分钟补充能量；今天还有不少需要判断的时刻。`:'你没有预留早餐时间；这是个人设定，不是健康建议。'},
+    {time:wake,kind:'wake',title:overslept?'再次睁眼，已经睡过头了':snooze?'两分钟后，你按时醒来了':'你关掉闹钟，坐起身',text:overslept?'你以为只睡两分钟，实际上错过了闹钟。是否迟到还取决于后面的准备、通勤和突发状况。':'新的一天开始。先把自己的节奏找回来。'},
+    {time:wake,kind:'wash',title:morning?.choices.skipWash?'你跳过了洗漱':'洗漱，更换今天的衣服',text:morning?.choices.skipWash?'省下了预设洗漱时间，但匆忙出门让你有些不自在。':`洗脸、刷牙、整理仪容，按你的设置耗时 ${wash} 分钟。`},
+    {time:wake+wash,kind:'breakfast',title:breakfast?'吃点早餐，再出门':'没有吃早餐，准备出门',text:breakfast?`用 ${breakfast} 分钟补充能量；今天还有不少需要判断的时刻。`:'这次没有早餐时段。副本中的饥饿会影响精力，这是游戏反馈，不是健康测量。'},
     {time:depart,kind:'commute',title:p.commute?'走上通勤的路':'今天无需通勤',text:`单程 ${p.commute} 分钟。你在脑中整理今天的待办。`},
     {time:arrival,kind:'arrival',title:arrival>p.startMinute?`你迟到了 ${arrival-p.startMinute} 分钟`:'你按时到达工作地点',text:arrival>p.startMinute?'先向同事说明情况，再重新安排工作优先级。迟到不结束体验，你仍可以作出接下来的选择。':`距离上班还有 ${p.startMinute-arrival} 分钟，放下包、打开工作台。`},
-    {time:workStart,kind:'work',round:0,title:'接到今天的职业任务'},
+    {time:workStart+(morning?15:0),kind:'work',round:0,title:'接到今天的职业任务'},
     {time:workStart+Math.floor(span*.28),kind:'lunch',title:'午饭与片刻休息',text:'离开屏幕，吃午饭、喝水。上午的选择还在影响你对这份工作的感受。'},
     {time:workStart+Math.floor(span*.45),kind:'work',round:1,title:'午后，计划发生了变化'},
     {time:workStart+Math.floor(span*.82),kind:'work',round:2,title:'交付之前，最后一道判断'},
@@ -49,6 +51,15 @@ export function buildDay(raw,snooze,random=Math.random,roleId=null,options={}){
     {time:p.bedMinute-30,kind:'reflect',title:'睡前半小时，回顾今天',text:'这份职业让你更有成就感，还是持续消耗你？带着今天的真实感受，而不是职位名称，作出下一次选择。'},
     {time:p.bedMinute,kind:'sleep',title:'关灯，晚安',text:'这一天结束了。你已经经历了起床、通勤、工作决策和晚间生活，接下来记录你对这份职业的感受。'}
   ];
+  if(morning){
+    let incidentTime=wake+wash+breakfast+(morning.checkMinutes||0);
+    for(const incident of morning.incidents){events.push({time:incidentTime,kind:'interruption',title:incident.title,text:incident.text});incidentTime+=incident.id==='materials'?(morning.materialPlan==='return'?12:4):incident.minutes;}
+    if(morning.lateMinutes){events.push({time:workStart+1,kind:'consequence',consequenceId:'late-notice',actor:morning.bossNoticed?'负责人':'同事',title:morning.bossNoticed?'负责人发现你迟到了':'你需要补充迟到说明',text:'迟到已经发生。你如何说明影响并安排补救，会改变后面的待办与心情。',options:[{id:'explain',text:'说明情况，确认优先级并提出补救安排',feedback:'你说清了影响并约定补救，紧张缓和了一些，但仍需完成工作。',energy:-3,mood:4,work:-3},{id:'rush',text:'先赶进度，暂时不沟通',feedback:'你直接投入工作，但同事不知道进度，后续需要额外协调。',energy:-8,mood:-6,work:6}]});}
+    if(morning.missedMeeting)events.push({time:workStart+5,kind:'consequence',consequenceId:'missed-meeting',actor:'同事',title:'你错过了重要会议的开场',text:'任务目标有调整，你还不知道会议中的最新结论。直接沿用旧方案可能返工。',options:[{id:'notes',text:'联系同事核实纪要与变更，再开始任务',feedback:'你补齐了会议信息，减少误解；请把确认的依据写入工作方案。',energy:-5,mood:2,work:-6},{id:'guess',text:'凭昨天的记忆先做，稍后再核实',feedback:'你暂时推进了工作，但留下了目标理解不一致的风险。',energy:-8,mood:-5,work:8}]});
+    if(morning.incidents.some(i=>i.id==='reminder'))events.push({time:workStart+35,kind:'consequence',consequenceId:'colleague-reminder',actor:'同事',title:'昨天交代的准备工作还没完成',text:'同事正在等你的确认，你需要把遗漏纳入今天的安排。',options:[{id:'recover',text:'确认遗漏事项，约定补交时间并更新清单',feedback:'你补上了沟通与清单，仍需要花精力兑现补交承诺。',energy:-5,mood:2,work:-5},{id:'delay',text:'先放着，等同事再次提醒',feedback:'未确认的事项继续挤占后面的交付空间。',energy:-3,mood:-5,work:7}]});
+    if(morning.choices.skipBreakfast&&p.breakfast>0)events.push({time:workStart+Math.floor(span*.2),kind:'consequence',consequenceId:'hunger',title:'没吃早餐，注意力开始分散',text:'你感到精力下降，需要在手头任务与短暂休息之间安排一下。',options:[{id:'snack',text:'安排短暂休息，补充食物后继续',feedback:'你重新安排了节奏，副本精力有所恢复。',energy:8,mood:4,work:0},{id:'continue',text:'先继续工作，午饭再休息',feedback:'你选择暂时继续，疲惫感留在了后面的工作中。',energy:-8,mood:-3,work:2}]});
+    events.sort((a,b)=>a.time-b.time);
+  }
   const overtime=mode.hell&&random()<.9;
   const overtimeMinutes=overtime?(options.difficulty==='difficult'?180:90):0;
   if(mode.hell){
@@ -63,5 +74,5 @@ export function buildDay(raw,snooze,random=Math.random,roleId=null,options={}){
     events.sort((a,b)=>a.time-b.time);
   }
   if(options.difficulty){const context={settings:p,events,overtime};events.push(...socialEvents(context));events.sort((a,b)=>a.time-b.time);}
-  return {difficulty:mode.hell?'difficult':'normal',settings:p,alarm:clock(p.alarm),overslept,snooze,hell:mode.hell,overtime,overtimeMinutes,lateMinutes:Math.max(0,arrival-p.startMinute),events:events.map(e=>({...e,clock:clock(e.time)})),rule:`赖床 70% 睡过头；${mode.hell?'困难模式 90% 概率加班 '+(options.difficulty==='difficult'?180:90)+' 分钟':'正常模式按时下班'}。全部为游戏设定，不是现实统计。`};
+  return {difficulty:mode.hell?'difficult':'normal',settings:p,alarm:clock(p.alarm),overslept,snooze,hell:mode.hell,overtime,overtimeMinutes,...(morning?{morning,arrivalMinute:arrival}:{}),lateMinutes:Math.max(0,arrival-p.startMinute),events:events.map(e=>({...e,clock:clock(e.time)})),rule:`赖床可能睡过头，实际迟到由准备、通勤与突发事件计算；${mode.hell?'困难模式 90% 概率加班 '+(options.difficulty==='difficult'?180:90)+' 分钟':'正常模式按时下班'}。全部为游戏设定，不是现实统计。`};
 }

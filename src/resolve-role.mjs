@@ -29,6 +29,7 @@ export function resolveScenario(payload,difficulty=null){
   if(role.id!==payload.roleId)throw Error('自定义职业记录不匹配，请重新选择');
   const base=scenario(role.templateId,difficulty);
   base.roleId=role.id;base.title=role.name;base.task=role.task;base.artifact=role.artifact;base.customRoleToken=payload.customRoleToken;
+  base.taskFamily=role.templateId;
   base.rounds[0].text=role.task;
   base.rounds[1].text=`截止时间提前，合作方质疑你的${role.artifact}，你如何协调？`;
   return base;

@@ -5,7 +5,7 @@ await import('../scripts/build-pages.mjs');
 test('Pages output uses project-relative assets and includes all imported modules',async()=>{
  const html=await readFile(new URL('../dist/pages/index.html',import.meta.url),'utf8');
  assert.ok(!/(?:src|href)="\/(?:app|style|intro)/.test(html));
- for(const file of ['app.js','config.js','day-ui.js','life-model.js','reimbursement.js','intro.js','i18n.js','translations.js','locale-overrides.js','free-trial.js','work-context-ui.js','style.css','intro.css'])assert.ok((await readFile(new URL('../dist/pages/'+file,import.meta.url),'utf8')).length>0);
+ for(const file of ['app.js','config.js','day-ui.js','life-model.js','reimbursement.js','intro.js','i18n.js','translations.js','locale-overrides.js','free-trial.js','work-context-ui.js','task-ui.js','style.css','intro.css'])assert.ok((await readFile(new URL('../dist/pages/'+file,import.meta.url),'utf8')).length>0);
 });
 test('Pages client selects public backend and hash routes without storing secrets',async()=>{
  const source=await readFile(new URL('../public/config.js',import.meta.url),'utf8');const c=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);

@@ -15,7 +15,12 @@ export function socialEvents(day){
   {time:home+20,kind:'relationship',socialId:'friend-followup',actor:'朋友',title:'回头看看，邀约和工作都怎么样了？',text:'你白天作出的取舍，已经留下不同的结果。'}
  ];
 }
-export function newLife(day){return {energyDelta:day.overtime?-20:0,mood:day.overtime?55:75,choices:{},workPenalty:0,history:[]};}
+export function newLife(day){const effects=day.morning?.effects||{};return {energyDelta:(day.overtime?-20:0)+(effects.energyDelta||0),mood:Math.max(0,Math.min(100,(day.overtime?55:75)+(effects.moodDelta||0))),choices:{},workPenalty:effects.workPenalty||0,history:[]};}
+export function chooseConsequence(life,event,index){
+ if(event.kind!=='consequence'||!event.options?.[index]||life.choices[event.consequenceId])throw Error('本事件已处理或选择无效。');
+ const option=event.options[index];life.energyDelta+=option.energy;life.mood=Math.max(0,Math.min(100,life.mood+option.mood));life.workPenalty=Math.max(0,life.workPenalty+option.work);
+ const result={id:option.id,index,actor:event.actor||event.title,feedback:option.feedback};life.choices[event.consequenceId]=result;life.history.push(result);return result;
+}
 export function chooseSocial(life,event,index,difficulty,random=Math.random){
  if(event.kind!=='social'||!event.options?.[index]||life.choices[event.socialId])throw Error('社交选择无效或已经完成');
  const option=event.options[index];let energy=0,mood=0,failed=false;
@@ -39,7 +44,7 @@ export function branchEvent(event,life){
    const choices=['old-friend','best-friend'].map(k=>life.choices[k]).filter(Boolean);
    return {...event,text:choices.map(c=>`${c.actor}：${c.feedback}`).join(' ')||'今天暂时没有留下邀约安排。'};
  }
- if(event.kind==='work'&&life.workPenalty)return {...event,branchNote:`此前的工作与邀约安排留下了 ${life.workPenalty} 点待办压力；这次更需要确认范围、说明进度与复核。`};
+ if(event.kind==='work'&&life.workPenalty)return {...event,branchNote:`此前的安排留下了 ${life.workPenalty} 点待办压力；这次更需要确认范围、说明进度与复核。`};
  return event;
 }
 export function wellbeing(life,workEnergy){return {energy:Math.max(0,Math.min(100,workEnergy+life.energyDelta)),mood:life.mood,workPressure:life.workPenalty};}

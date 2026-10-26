@@ -37,3 +37,12 @@ test('hosted free trials persist across Worker instances without exposing server
  assert.equal((await post('/api/trial/reimbursement',{deviceId})).status,409);
  const status=await post('/api/trial/status',{deviceId});assert.equal(status.data.claimed,true);assert.ok(!JSON.stringify([...records.values()]).includes(env.DEEPSEEK_API_KEY));
 });
+
+test('hosted own-key calls reach the provider under Workers redirect constraints',async()=>{
+ const original=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(_,options)=>{calls++;if(options.redirect==='error')throw TypeError('Workers redirect mode not implemented');assert.equal(options.redirect,'manual');return Response.json({error:{message:'invalid fixture key'}},{status:401});};
+ try{
+  const r=await worker.fetch(new Request('https://example.test/api/profile-insight',{method:'POST',headers:{origin:'https://example.test','Content-Type':'application/json'},body:JSON.stringify({profile:{occupation:'Student',industry:'科技',skills:[],goals:[],hours:5},ai:{provider:'deepseek',model:'deepseek-flash',key:'test-invalid'}})}),environment(),{waitUntil(p){void p;}});
+  const result=await r.json();assert.equal(r.status,200);assert.equal(calls,1);assert.equal(result.ai.errorCode,'authentication');assert.equal(result.ai.httpStatus,401);
+ }finally{globalThis.fetch=original;}
+});

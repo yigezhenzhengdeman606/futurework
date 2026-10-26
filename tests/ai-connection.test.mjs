@@ -11,6 +11,11 @@ test('plain DeepSeek profile requests disable thinking just like JSON requests',
  }
  await enhance('profile-insight',{}, {...config,provider:'openai'},async(_,request)=>{assert.ok(!Object.hasOwn(JSON.parse(request.body),'thinking'));return Response.json({choices:[{message:{content:'ok'}}]});});
 });
+test('AI fetch uses Workers-compatible manual redirects and never follows a key-bearing redirect',async()=>{
+ let calls=0;
+ const result=await enhance('profile-insight',{},config,async(_,request)=>{calls++;if(request.redirect==='error')throw TypeError('Workers does not implement error redirect mode');assert.equal(request.redirect,'manual');return new Response(null,{status:307,headers:{Location:'https://untrusted.example/'}});});
+ assert.equal(calls,1);assert.equal(result.errorCode,'redirect');assert.equal(result.text,null);assert.ok(!JSON.stringify(result).includes(config.key));
+});
 test('provider errors are distinct, actionable, and never echo a raw provider message or key',async()=>{
  for(const [status,expected] of [[401,'authentication'],[402,'balance'],[403,'access'],[400,'parameters'],[404,'model'],[422,'parameters'],[429,'rate_limit'],[503,'provider']]){
   let calls=0;const result=await enhance('profile-insight',{},config,async()=>{calls++;return Response.json({error:{message:config.key}},{status});});

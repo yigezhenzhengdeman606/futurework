@@ -1,5 +1,6 @@
 // Reviewed product terminology and safety-critical copy override draft translations.
 export const overrides=[
+ ['接口发生重定向，已停止请求以保护密钥。请检查服务商接口配置。已保留规则结果。','The endpoint redirected. The request was stopped to protect your key. Check the provider endpoint configuration. Rule-based results are retained.','Titik akhir mengubah hala. Permintaan dihentikan untuk melindungi kunci anda. Semak konfigurasi titik akhir penyedia. Hasil berasaskan peraturan dikekalkan.'],
  ['返回的内容不是有效 JSON，已保留规则结果。请稍后手动重试。','The returned content is not valid JSON. Rule-based results are retained. Retry manually later.','Kandungan yang dikembalikan bukan JSON yang sah. Hasil berasaskan peraturan dikekalkan. Cuba semula secara manual kemudian.'],
  ['返回内容的数量或格式不符合要求，已保留规则结果。请稍后手动重试。','The response has an invalid item count or structure. Rule-based results are retained. Retry manually later.','Jawapan mempunyai bilangan item atau struktur yang tidak sah. Hasil berasaskan peraturan dikekalkan. Cuba semula secara manual kemudian.'],
  ['密钥所属服务商','Key provider','Penyedia kunci'],

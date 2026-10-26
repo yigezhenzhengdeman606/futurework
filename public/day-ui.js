@@ -1,4 +1,5 @@
 import {apiUrl} from './config.js';
+import {getLocale,aiConfig} from './i18n.js';
 import {newLife,chooseSocial,branchEvent,wellbeing} from './life-model.js';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let activeState;
@@ -35,7 +36,7 @@ export function renderDaily(state){
 function update(state){const host=document.querySelector('#day-host');if(!host||state!==activeState||state.view!=='simulation')return;host.outerHTML=renderDaily(state);if(state.daily.feedback===null)window.scrollTo({top:0,behavior:'instant'});document.querySelector('.day-heading')?.focus({preventScroll:true});}
 async function request(url,data){
  try{
-  const r=await fetch(apiUrl(url),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(75000)});
+  const r=await fetch(apiUrl(url),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,locale:getLocale(),...(data.ai?{ai:aiConfig(data.ai)}:{})}),signal:AbortSignal.timeout(75000)});
   let result;try{result=await r.json();}catch{throw Error('服务返回异常，请确认本地服务正在运行后重试。');}
   if(!r.ok)throw Error(result.error||'请求失败，请重试');return result;
  }catch(error){if(error.name==='TimeoutError'||error.name==='AbortError')throw Error('请求超时，请确认服务正常后重试；本次未自动重复调用 AI。');if(error instanceof TypeError)throw Error('无法连接本地服务，请确认服务已启动后重试。');throw error;}

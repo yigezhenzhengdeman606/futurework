@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-const source = readFileSync(new URL('../public/intro.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../public/intro.js', import.meta.url), 'utf8').replace(/^import '\.\/i18n\.js';\r?\n/,'');
 function mount(reduced = false) {
   const handlers = {};
   const classes = new Set();

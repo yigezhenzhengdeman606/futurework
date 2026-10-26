@@ -68,9 +68,15 @@ node --check public/app.js
 server.mjs             本地 HTTP 服务、AI 增强接口
 src/career.mjs         职业目录、行业估算、匹配、体验、自评
 src/market.mjs         每日公开来源抓取与持久缓存
-public/               中文响应式界面（原生 HTML/CSS/JavaScript）
+public/               中文 / English / Bahasa Melayu 响应式界面（原生 HTML/CSS/JavaScript）
 tests/career.test.mjs  Node 标准库自动测试
 docs/ARCHITECTURE.md   API 数据格式、算法、数据边界和上线前工作
 ```
 
 这是可运行的本地 MVP。未实现经真实就业数据校准的预测模型、完整游戏世界、执业资格评估、RunPod GPU 模型或公网部署。下一步应接入职业任务和招聘统计数据、评估预测误差，并扩充角色和情境。
+
+## 三语界面
+
+所有页面与弹窗提供中文、English、Bahasa Melayu 切换，浏览器仅保存语言偏好。切换不会重建表单或重置体验进度；表单选项保留原始业务值，避免翻译改变匹配逻辑。界面、规则问题、报告、整日剧情、报销材料与错误提示使用随站打包的翻译，不依赖在线翻译服务，也不会发送用户输入进行翻译。
+
+AI 请求携带当前语言，要求面向用户的生成内容使用该语言，保留结构字段、技能标识与签名。已经生成的自定义 AI 内容和用户原文保留生成时的语言，切换不会自动再次收费生成。英文、马来语术语校对位于 `public/locale-overrides.js`，基础文案位于 `public/translations.js`。

@@ -18,7 +18,7 @@ export async function resolveRole(raw,config,request){
     const existing=roles.find(r=>r.name===input);
     if(existing)return {status:'ready',role:existing};
     if(input.length<4||['科技','教育','工作','医生','老师','学生','打工'].includes(input))return {status:'clarify',message:'请补充具体方向，例如“小学数学教师”“后端开发工程师”。未开启 AI 时使用通用规则副本。',questions:['岗位主要负责什么？']};
-    definition={name:input,task:`整理「${input}」的当天任务，确认需求、优先级并完成团队交接。`,artifact:'一份说明目标、依据与下一步的工作记录',family:/小学|初中|高中|中小学/.test(input)?'school':/医生|医师/.test(input)?'physician':'general'};
+    definition={name:input,task:`整理「${input}」的当天任务，确认需求、优先级并完成团队交接。`,artifact:'一份说明目标、依据与下一步的工作记录',family:/小学|初中|高中|中小学|primary school|secondary school|high school|sekolah rendah|sekolah menengah/i.test(input)?'school':/医生|医师|\bdoctor\b|\bphysician\b|\bdoktor\b/i.test(input)?'physician':'general'};
   }
   const role={id:`custom-${randomUUID()}`,name:definition.name,task:definition.task,artifact:definition.artifact,templateId:definition.family==='school'?'school':definition.family==='physician'?'physician':'analyst',custom:true};
   return {status:'ready',role,customRoleToken:signScenario('custom-role',[role]),mode:config?.key?'ai':'rules',note:config?.key?'AI 已确认职业方向；具体工作日将在开始后生成。':'未开启 AI，使用通用规则体验，不声称还原该岗位的真实细节。'};

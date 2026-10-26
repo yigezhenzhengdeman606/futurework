@@ -1,3 +1,4 @@
+import './i18n.js';
 // Independent of API loading: a failed request must never prevent skipping.
 const intro = document.querySelector('#intro');
 const skip = document.querySelector('#intro-skip');

@@ -9,7 +9,7 @@ function environment(){
 }
 test('hosted Worker serves HTTPS pages/assets and accepts same-origin JSON but rejects cross-site calls',async()=>{
  const env=environment(),ctx={waitUntil(p){void p;}};
- for(const file of ['/','/experience','/app.js','/day-ui.js','/life-model.js']){const r=await worker.fetch(new Request('https://example.test'+file),env,ctx);assert.equal(r.status,200,file);assert.match(r.headers.get('Content-Security-Policy'),/default-src/);}
+ for(const file of ['/','/experience','/app.js','/day-ui.js','/life-model.js','/i18n.js','/translations.js','/locale-overrides.js']){const r=await worker.fetch(new Request('https://example.test'+file),env,ctx);assert.equal(r.status,200,file);assert.match(r.headers.get('Content-Security-Policy'),/default-src/);}
  const post=(origin)=>worker.fetch(new Request('https://example.test/api/day/preview',{method:'POST',headers:{'Content-Type':'application/json',origin},body:JSON.stringify({settings:{start:'10:00',end:'19:00',bed:'23:30',wash:10,breakfast:10,commute:10,buffer:10},roleId:'school'})}),env,ctx);
  assert.equal((await post('https://example.test')).status,200);assert.equal((await post('https://other.test')).status,403);
 });

@@ -1,3 +1,4 @@
+import {getLocale,translate} from './i18n.js';
 const email = '3473280583@qq.com';
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function validateAmount(raw) {
@@ -65,11 +66,12 @@ if (typeof document !== 'undefined') {
       const id=`FW-${crypto.randomUUID()}`;
       const html=`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Futurework 体验费用申请</title><body><h1>Futurework 一次体验报销申请</h1><p>申请编号：${id}</p><p>生成时间：${escape(new Date().toISOString())}</p><p>实际消费金额：CNY ${amount}（最高 1 元）</p><p>收款方式：${escape(method)}</p><p>待人工审核，未付款；请核实实际消费及是否重复申请。</p><h2>本人收款码</h2><img width="360" alt="收款码" src="${images[0]}"><h2>API 实际消费凭证</h2><img width="600" alt="消费凭证" src="${images[1]}"></body></html>`;
       const filename=`${id}.html`;
-      const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+      const translatedHTML=html.replace('lang="zh-CN"',`lang="${getLocale()}"`).replace(/>([^<>]+)</g,(_,text)=>'>'+translate(text)+'<');
+      const url=URL.createObjectURL(new Blob([translatedHTML],{type:'text/html;charset=utf-8'}));
       const link=document.createElement('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
       const subject=`Futurework 一次 AI 体验报销 ${id}`;
       const body=`申请编号：${id}\n实际消费：CNY ${amount}\n收款方式：${method}\n\n请手动附上刚下载的 ${filename}（包含收款码和消费凭证）再发送。\n我确认仅申请一次体验的实际费用，请审核。`;
-      mail.href=`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;mail.hidden=false;
+      mail.href=`mailto:${email}?subject=${encodeURIComponent(translate(subject))}&body=${encodeURIComponent(translate(body))}`;mail.hidden=false;
       status.textContent=`申请材料已生成（${filename}），尚未提交。请点击“打开邮件申请”，手动附加该文件并发送至 ${email}；也可在网页邮箱中发送。下载不代表审核通过或已付款。`;
     }catch(error){status.textContent=error.message;}finally{busy=false;button.disabled=false;}
   });

@@ -1,4 +1,5 @@
 import {apiUrl,pageRoute,initialView} from './config.js';
+import {getLocale,aiConfig} from './i18n.js';
 import {renderDaily} from './day-ui.js';
 import './reimbursement.js';
 const $=s=>document.querySelector(s);
@@ -8,7 +9,7 @@ document.addEventListener('ai-configured', event=>{
   state.ai=event.detail?{...event.detail}:{provider:'openai',model:'gpt-4.1-mini',key:''};
 });
 const names={overview:'未来观察站',profile:'我的职业档案',report:'转型报告',simulation:'职业体验副本',stress:'压力测试与匹配',settings:'AI 连接设置',direction:'职业方向确认',questions:'专属问题',experience:'职业体验大厅',experienceReview:'体验复盘'};
-async function api(url,data){const res=await fetch(apiUrl(url),data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{});const result=await res.json();if(!res.ok)throw Error(result.error||'请求失败');return result;}
+async function api(url,data){const res=await fetch(apiUrl(url),data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,locale:getLocale(),...(data.ai?{ai:aiConfig(data.ai)}:{})})}:{});const result=await res.json();if(!res.ok)throw Error(result.error||'请求失败');return result;}
 function notice(text=''){$('#notice').textContent=text;}
 function title(name,desc){return `<div class="page-title"><div class="eyebrow">YOUR NEXT CHAPTER</div><h1>${name}</h1><p class="muted">${desc}</p></div>`;}
 function tags(goals){return goals.map(g=>`<span class="tag" title="${esc(state.catalog.sdgs[g-1])}">SDG ${g} · ${esc(state.catalog.sdgs[g-1])}</span>`).join('');}
